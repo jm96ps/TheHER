@@ -9,7 +9,7 @@ Among the things it can work out are:
 - Calculate the hydrogen coverage in each potential under the steady state approximation
 - Calculate the Tafel slope for a determined potential window (such as calculating it at 10 mV) for establishing a criterion for the validation of the Tafel Slope analysis, regarding what is described in [1].
 
-Considering the overall HER in alkaline media[2],
+Considering the overall HER in alkaline media [2],
 
 
 ```math
@@ -19,7 +19,7 @@ Considering the overall HER in alkaline media[2],
 Volmer step (adsorption),
 
 $$
-\ce{H2O + e-+M->MH_{ads} + OH-}
+\ce{H2O + e- + M->MH_{ads} + OH-}
 $$
 
  and the Heyrovsky step (desorption)
@@ -30,10 +30,10 @@ $$
 
 the chemical rate constants, symmetry coefficients could also be estimated from the fitting of total dc current ($j=F\upsilon= \upsilon_1+\upsilon_2$) of experimental curves.
 
-To calculate the hydrogen coverage in each potential, it was taken from the steady-state approximation ($\frac{d\theta_{H}}{dt}=$), then
+To calculate the hydrogen coverage in each potential, it was taken from the steady-state approximation ($\frac{d\theta_{H}}{dt}=0$), then
 
 $$
-\theta_{H}= \frac{\overrightarrow{k}_{1}+\overrightarrow{k}_{2}}{\overrightarrow{k}_{1}+\overleftarrow{k}_{-1}+\overrightarrow{k}_{2}+\overleftarrow{k}_{-2}}
+\theta_{H}= \frac{\overrightarrow{k}_{1}+\overrightarrow{k}_{2}}{\overrightarrow{k}_{1}+\overleftarrow{k}_{-1}+\overrightarrow{k}_{2}+\overleftarrow{k}_{-2}}.
 $$
 
 1. Onno van der Heijden, Sunghak Park, Rafaël E. Vos, Jordy J. J. Eggebeen, and Marc T. M. Koper. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” ACS Energy Letters, American Chemical Society, April 1, 2024, 1871–79. [10.1021/acsenergylett.4c00266](https://pubs.acs.org/doi/10.1021/acsenergylett.4c00266)
