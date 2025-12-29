@@ -13,7 +13,7 @@ Considering the overall HER in alkaline media [2],
 
 
 ```math
-\ce{H2O + 2e-->H2 + 2OH-}
+\ce{H2O + 2e- ->H2 + 2OH-}
 ```
 
 Volmer step (adsorption),
