@@ -36,7 +36,7 @@ $$
 \theta_{H}= \frac{\overrightarrow{k}_{1}+\overrightarrow{k}_{2}}{\overrightarrow{k}_{1}+\overleftarrow{k}_{-1}+\overrightarrow{k}_{2}+\overleftarrow{k}_{-2}}.
 $$
 
-1. Onno van der Heijden, Sunghak Park, Rafaël E. Vos, Jordy J. J. Eggebeen, and Marc T. M. Koper. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” ACS Energy Letters, American Chemical Society, April 1, 2024, 1871–79. [10.1021/acsenergylett.4c00266](https://pubs.acs.org/doi/10.1021/acsenergylett.4c00266)
+1. Onno van der Heijden, Sunghak Park, Rafaël E. Vos, Jordy J. J. Eggebeen, and Marc T. M. Koper. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” ACS Energy Letters, American Chemical Society, April 1, 2024, 1871–79 [10.1021/acsenergylett.4c00266](https://pubs.acs.org/doi/10.1021/acsenergylett.4c00266).
 
-2. Lasia, Andrzej. “Mechanism and Kinetics of the Hydrogen Evolution Reaction.” International Journal of Hydrogen Energy 44, no. 36 (2019): 19484–518. [https://doi.org/10.1016/j.ijhydene.2019.05.183](https://doi.org/10.1016/j.ijhydene.2019.05.183).
+2. Lasia, Andrzej. “Mechanism and Kinetics of the Hydrogen Evolution Reaction.” International Journal of Hydrogen Energy 44, no. 36 (2019): 19484–518 [https://doi.org/10.1016/j.ijhydene.2019.05.183](https://doi.org/10.1016/j.ijhydene.2019.05.183).
 
