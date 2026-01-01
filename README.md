@@ -167,7 +167,7 @@ Volmer step
 ```
 Heyrovsky step
 ```math
-\ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overlefttarrow{k}_{-2}] H2 + OH-}         
+\ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overleftarrow{k}_{-2}] H2 + OH-}         
 ```
 Tafel step (Full Model)
 ```math
