@@ -1,6 +1,6 @@
-# Interactive HER Fitting Analysis
+# HER Fitting Analysis
 
-**Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
+**Script and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
@@ -30,8 +30,8 @@ This project provides an interactive tool for:
 - Parameter display box
 
 🔬 **Multiple Model Options**
-- **Simplified Model**: 2-step HER mechanism
-- **Full Model**: 3-step HER mechanism with dependent parameter calculation
+- **Simplified Model**: 2-step HER mechanism (Vomer-Heyrovsky)
+- **Full Model**: 3-step HER mechanism with dependent parameter calculation (Volmer-Heyrovsky-Tafel)
 
 ⚙️ **Data Processing**
 - Automatic ohmic drop correction
@@ -79,7 +79,7 @@ This project provides an interactive tool for:
      ```python
      file_path = r'path/to/your/data.txt'
      area_electrode = 0.5  # cm²
-     ohmic_drop = 6.43    # mV
+     ohmic_drop = 6.43    # ohm
      ref_correction = 0.924  # V
      ```
 
@@ -128,16 +128,16 @@ LSV_Fitting_HER/
 ### Rate Constants
 | Parameter | Description | Typical Range |
 |-----------|-------------|---------------|
-| k1 | Forward rate const. (step 1) | 1e-12 to 1e-2 A/cm² |
-| k1r | Reverse rate const. (step 1) | 1e-12 to 1e-2 A/cm² |
-| k2 | Forward rate const. (step 2) | 1e-12 to 1e-2 A/cm² |
-| k2r | Reverse rate const. (step 2) | Computed from k1, k2, k1r |
+| $k_1$ (k1) | Forward rate const. (Volmer step) | $10^{-12}\ to\ 0.01\ mol\ cm^{-2}\ s^{-1}$ |
+| $k_{-1}$(k1r) | Reverse rate const. (Volver step) | $10^{-12}\ to\ 0.01\ mol\ cm^{-2}\ s^{-1}$ |
+| $k_2$(k2) | Forward rate const. (Heyrovsky step ) | $10^{-12}\ to\ 0.01\ mol\ cm^{-2}\ s^{-1}$ |
+| $k_{-2}$(k2r) | Reverse rate const. (Heyrovsky step) | Computed from $k_{1},\ k_{-1},\ k_{2}$ |
 
 ### Symmetry Factors
 | Parameter | Description | Range |
 |-----------|-------------|-------|
-| bbv | Symmetry factor (Volmer) | 0.0 - 1.0 |
-| bbh | Symmetry factor (Heyrovsky/Tafel) | 0.0 - 1.0 |
+| $\beta_v$ (bbv) | Symmetry factor (Volmer) | 0.0 - 1.0 |
+| $\beta_h$ (bbh) | Symmetry factor (Heyrovsky) | 0.0 - 1.0 |
 
 ### Physical Constants
 | Constant | Value | Unit |
@@ -145,7 +145,7 @@ LSV_Fitting_HER/
 | F (Faraday) | 96485.3 | C/mol |
 | R | 8.314 | J/(mol·K) |
 | T | 298.15 | K |
-| f1 | ~38.92 | 1/V (at 298K) |
+| $f1=\frac{F}{RT}$ | ~38.92 | 1/V (at 298K) |
 
 ## Notebook Workflow
 
@@ -156,22 +156,23 @@ LSV_Fitting_HER/
 5. **Fitting** - Perform non-linear regression using lmfit
 6. **Interactive UI** - Create parameter sliders
 7. **Visualization** - Real-time plot generation
-
 ## HER Models
-
+```math
+\ce{2H2O + 2e- <-->H2 + OH-}
+```
 ### Simplified Model (2-step)
+Volmer step
+```math
+\ce{H2O + e- + M <-->[\overrightarrow{k}_1][\overrightarrow{k}_{-1}] MH + OH-}
 ```
-H+ + e- ⇌ H_ads           (step 1, Volmer)
-H_ads + H+ + e- → H2     (step 2, Heyrovsky)
+Heyrovsky step
+```math
+\ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overrightarrow{k}_{-2}] H2 + OH-}           (step 2, Heyrovsky)
 ```
-
-### Full Model (3-step)
+Tafel step (Full Model)
+```math
+\ce{2MH<-->[{k}_3][{k}_{-3}] H2 +2M}           (step 2, Heyrovsky)
 ```
-H+ + e- ⇌ H_ads              (step 1, Volmer)
-H_ads + H+ + e- ⇌ H2 + site  (step 2, Heyrovsky)
-2 H_ads → H2 + 2 sites       (step 3, Tafel)
-```
-
 ## Customization
 
 ### Change Model Type
@@ -190,8 +191,8 @@ k1=dict(value=initial_value, max=1e-2, min=1e-20)
 Edit electrode parameters:
 ```python
 area_electrode = 0.5  # Your electrode area (cm²)
-ohmic_drop = 6.43     # Your ohmic drop (mV)
-ref_correction = 0.924 # Your reference potential (V)
+ohmic_drop = 6.43     # Your ohmic drop (ohm)
+ref_correction = 0.924 # Your reference potential (V) (mercury oxide reference electrode in 1 NaOH (pH=14))
 ```
 
 ## Dependencies
@@ -263,9 +264,11 @@ Contributions welcome! Please:
 
 ## References
 
-- Nørskov, J. K., et al. (2004). "Origin of the Overpotential for Oxygen Reduction" *J. Phys. Chem. B*
-- Trasatti, S. (1972). "Work Function, Electronegativity, and Electrochemical Behaviour of Metals" *J. Electroanal. Chem.*
-- Voth, G. A. (2006). "Coarse-graining of condensed phase and biomolecular molecular dynamics simulations"
+- Lasia, Andrzej. “Mechanism and Kinetics of the Hydrogen Evolution Reaction.” International Journal of Hydrogen Energy 44, no. 36 (2019): 19484–518. [10.1016/j.ijhydene.2019.05.183](10.1016/j.ijhydene.2019.05.183)
+
+- Onno van der Heijden, Sunghak Park, Rafaël E. Vos, Jordy J. J. Eggebeen, and Marc T. M. Koper. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” ACS Energy Letters, American Chemical Society, April 1, 2024, 1871–79. [10.1021/acsenergylett.4c00266](10.1021/acsenergylett.4c00266)
+
+
 
 ## License
 
@@ -276,21 +279,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 If you use this tool in your research, please cite:
 
 ```bibtex
-@software{her_fitting_2024,
-  author = {Your Name},
-  title = {Interactive HER Electrochemical Fitting Analysis},
-  year = {2024},
-  url = {https://github.com/yourusername/LSV_Fitting_HER}
+@software{TheHER,
+  author = {James Silva},
+  title = {*Script and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.},
+  year = {2026},
+  url = {https://github.com/jm96ps/TheHER}
 }
 ```
 
 ## Support
+Brazil pays poorly phD candidates.\
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/jm96ps)
+
 
 For issues, questions, or suggestions:
-- Open an [Issue](https://github.com/yourusername/LSV_Fitting_HER/issues)
-- Contact: your.email@example.com
+- Open an [Issue](https://github.com/jm96ps/TheHER/issues)
+- Contact: jamesmario@usp.br
 
 ---
 
-**Last Updated**: December 2024
+**Last Updated**: January 2026
 **Status**: Active Development ✓
