@@ -163,11 +163,11 @@ LSV_Fitting_HER/
 ### Simplified Model (2-step)
 Volmer step
 ```math
-\ce{H2O + e- + M <-->[\overrightarrow{k}_1][\overrightarrow{k}_{-1}] MH + OH-}
+\ce{H2O + e- + M <-->[\overrightarrow{k}_1][\overleftarrow{k}_{-1}] MH + OH-}
 ```
 Heyrovsky step
 ```math
-\ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overrightarrow{k}_{-2}] H2 + OH-}         
+\ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overlefttarrow{k}_{-2}] H2 + OH-}         
 ```
 Tafel step (Full Model)
 ```math
