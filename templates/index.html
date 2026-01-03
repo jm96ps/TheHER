@@ -16,15 +16,37 @@
         </header>
 
         <div class="main-content">
-            <!-- Section 1: Data Upload -->
             <section class="card">
                 <h2>📁 Step 1: Upload Data</h2>
                 <form id="uploadForm" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="dataFile">Select LSV Data File (.txt):</label>
-                        <input type="file" id="dataFile" name="file" accept=".txt" required>
+                        <label for="dataFile">Select LSV Data File (.txt, .csv):</label>
+                        <input type="file" id="dataFile" name="file" accept=".txt,.csv" required>
+                        <small>Supports any separator (comma, tab, space, semicolon)</small>
                     </div>
                     
+                    <h3>📊 Column Configuration</h3>
+                    <div class="parameters-grid">
+                        <div class="form-group">
+                            <label for="currentColumn">Current Column (0-based index):</label>
+                            <input type="number" id="currentColumn" name="current_column" value="0" min="0" required>
+                            <small>First column = 0, Second = 1, etc.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="potentialColumn">Potential Column (0-based index):</label>
+                            <input type="number" id="potentialColumn" name="potential_column" value="1" min="0" required>
+                            <small>First column = 0, Second = 1, etc.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="skipRows">Rows to Skip (header lines):</label>
+                            <input type="number" id="skipRows" name="skip_rows" value="1" min="0" required>
+                            <small>Number of header rows to skip</small>
+                        </div>
+                    </div>
+                    
+                    <h3>⚙️ Electrode Parameters</h3>
                     <div class="parameters-grid">
                         <div class="form-group">
                             <label for="areaElectrode">Electrode Area (cm²):</label>
@@ -37,8 +59,15 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="refCorrection">Reference Correction (V):</label>
-                            <input type="number" id="refCorrection" name="ref_correction" value="0.924" step="0.001" required>
+                            <label for="pH">pH:</label>
+                            <input type="number" id="pH" name="pH" value="7" step="0.1" required>
+                            <small>pH of solution</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="refElectrode">Reference Electrode Potential (V):</label>
+                            <input type="number" id="refElectrode" name="ref_electrode" value="0.098" step="0.001" required>
+                            <small>Potential of reference electrode used</small>
                         </div>
                         
                         <div class="form-group">
@@ -55,79 +84,73 @@
                     <button type="submit" class="btn btn-primary">Upload & Process Data</button>
                 </form>
                 <div id="uploadStatus" class="status-message"></div>
+                
+                <div id="rawPreview" class="data-preview" style="display:none;">
+                    <h3>📄 Raw File Preview (First 10 Lines)</h3>
+                    <div class="raw-lines-container">
+                        <table id="rawLinesTable">
+                            <thead><tr><th>Line</th><th>Content</th></tr></thead>
+                            <tbody id="rawLinesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="dataPreview" class="data-preview" style="display:none;">
+                    <h3>📋 Processed Data Preview (First 5 Points)</h3>
+                    <p><strong>After applying corrections:</strong></p>
+                    <table id="previewTable">
+                        <thead><tr><th>Current (A/cm²)</th><th>Potential (V vs RHE)</th></tr></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
             </section>
 
-            <!-- Section 2: Fitting Options -->
             <section class="card" id="fittingSection" style="display: none;">
                 <h2>⚙️ Step 2: Configure Fitting</h2>
-                
                 <div class="form-group">
                     <label>Model Type:</label>
                     <select id="modelType">
                         <option value="simplified">Simplified (2-step: Volmer-Heyrovsky)</option>
-                        <option value="full">Full (3-step: Volmer-Heyrovsky-Tafel)</option>
                     </select>
                 </div>
-                
                 <div class="parameters-grid">
                     <div class="form-group">
                         <label for="bbvInitial">Initial bbv (Volmer β):</label>
                         <input type="number" id="bbvInitial" value="0.5" min="0" max="1" step="0.01">
+                        <label style="display: inline-block; margin-top: 5px;">
+                            <input type="checkbox" id="varyBbv" checked> Allow to vary during fitting
+                        </label>
                     </div>
-                    
                     <div class="form-group">
                         <label for="bbhInitial">Initial bbh (Heyrovsky β):</label>
                         <input type="number" id="bbhInitial" value="0.5" min="0" max="1" step="0.01">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="varyBbv" checked> Vary bbv
-                        </label>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="varyBbh" checked> Vary bbh
+                        <label style="display: inline-block; margin-top: 5px;">
+                            <input type="checkbox" id="varyBbh" checked> Allow to vary during fitting
                         </label>
                     </div>
                 </div>
-                
                 <button id="fitBtn" class="btn btn-primary">Fit Data</button>
                 <div id="fitStatus" class="status-message"></div>
             </section>
 
-            <!-- Section 3: Results -->
             <section class="card" id="resultsSection" style="display: none;">
                 <h2>📊 Results</h2>
-                
                 <div class="results-container">
-                    <!-- Fitted Parameters -->
                     <div class="parameters-display">
                         <h3>Fitted Parameters</h3>
                         <table id="paramsTable">
-                            <thead>
-                                <tr>
-                                    <th>Parameter</th>
-                                    <th>Value</th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
                             <tbody id="paramsBody"></tbody>
                         </table>
-                        
                         <h3>Statistics</h3>
                         <div id="statsDisplay"></div>
                     </div>
-                    
-                    <!-- Interactive Controls -->
                     <div class="interactive-controls">
-                        <h3>🎛️ Interactive Parameter Adjustment</h3>
+                        <h3>🎛️ Interactive Parameters</h3>
                         <div id="sliderControls"></div>
                         <button id="updateBtn" class="btn btn-secondary">Update Plot</button>
                     </div>
                 </div>
-                
-                <!-- Plots -->
                 <div class="plots-grid">
                     <div id="plot1" class="plot-container"></div>
                     <div id="plot2" class="plot-container"></div>
@@ -135,12 +158,10 @@
                 </div>
             </section>
         </div>
-
         <footer>
-            <p>HER Analysis Platform | Deployed on Render | <a href="https://github.com/jm96ps/TheHER" target="_blank">GitHub Repository</a></p>
+            <p>HER Analysis Platform | <a href="https://github.com/jm96ps/TheHER">GitHub</a></p>
         </footer>
     </div>
-
     <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>
