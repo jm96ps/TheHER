@@ -8,7 +8,7 @@ lmfit==1.2.2
 matplotlib==3.8.2
 numpy==1.26.2
 # Optional: For enhanced data handling
-pandas==2.1.4
+pandas==2.2.0
 # Production WSGI server
 python-dateutil==2.8.2
 python-dotenv==1.0.0
