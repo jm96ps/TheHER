@@ -10,10 +10,13 @@ from scipy import stats
 import json
 import os
 import sys
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (optional for local development)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, use system env vars
 
 # Add HER script to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'HER script'))
