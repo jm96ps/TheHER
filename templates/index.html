@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HER Analysis - Hydrogen Evolution Reaction Fitting</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔬 HER Analysis Platform</h1>
+            <p class="subtitle">Hydrogen Evolution Reaction Electrochemical Data Fitting</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Section 1: Data Upload -->
+            <section class="card">
+                <h2>📁 Step 1: Upload Data</h2>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="dataFile">Select LSV Data File (.txt):</label>
+                        <input type="file" id="dataFile" name="file" accept=".txt" required>
+                    </div>
+                    
+                    <div class="parameters-grid">
+                        <div class="form-group">
+                            <label for="areaElectrode">Electrode Area (cm²):</label>
+                            <input type="number" id="areaElectrode" name="area_electrode" value="0.5" step="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="ohmicDrop">Ohmic Drop (Ω·cm²):</label>
+                            <input type="number" id="ohmicDrop" name="ohmic_drop" value="6.43" step="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="refCorrection">Reference Correction (V):</label>
+                            <input type="number" id="refCorrection" name="ref_correction" value="0.924" step="0.001" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="temperature">Temperature (K):</label>
+                            <input type="number" id="temperature" name="temperature" value="298.15" step="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gasConstant">Gas Constant (J/(mol·K)):</label>
+                            <input type="number" id="gasConstant" name="gas_constant" value="8.314" step="0.001" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Upload & Process Data</button>
+                </form>
+                <div id="uploadStatus" class="status-message"></div>
+            </section>
+
+            <!-- Section 2: Fitting Options -->
+            <section class="card" id="fittingSection" style="display: none;">
+                <h2>⚙️ Step 2: Configure Fitting</h2>
+                
+                <div class="form-group">
+                    <label>Model Type:</label>
+                    <select id="modelType">
+                        <option value="simplified">Simplified (2-step: Volmer-Heyrovsky)</option>
+                        <option value="full">Full (3-step: Volmer-Heyrovsky-Tafel)</option>
+                    </select>
+                </div>
+                
+                <div class="parameters-grid">
+                    <div class="form-group">
+                        <label for="bbvInitial">Initial bbv (Volmer β):</label>
+                        <input type="number" id="bbvInitial" value="0.5" min="0" max="1" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bbhInitial">Initial bbh (Heyrovsky β):</label>
+                        <input type="number" id="bbhInitial" value="0.5" min="0" max="1" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="varyBbv" checked> Vary bbv
+                        </label>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="varyBbh" checked> Vary bbh
+                        </label>
+                    </div>
+                </div>
+                
+                <button id="fitBtn" class="btn btn-primary">Fit Data</button>
+                <div id="fitStatus" class="status-message"></div>
+            </section>
+
+            <!-- Section 3: Results -->
+            <section class="card" id="resultsSection" style="display: none;">
+                <h2>📊 Results</h2>
+                
+                <div class="results-container">
+                    <!-- Fitted Parameters -->
+                    <div class="parameters-display">
+                        <h3>Fitted Parameters</h3>
+                        <table id="paramsTable">
+                            <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paramsBody"></tbody>
+                        </table>
+                        
+                        <h3>Statistics</h3>
+                        <div id="statsDisplay"></div>
+                    </div>
+                    
+                    <!-- Interactive Controls -->
+                    <div class="interactive-controls">
+                        <h3>🎛️ Interactive Parameter Adjustment</h3>
+                        <div id="sliderControls"></div>
+                        <button id="updateBtn" class="btn btn-secondary">Update Plot</button>
+                    </div>
+                </div>
+                
+                <!-- Plots -->
+                <div class="plots-grid">
+                    <div id="plot1" class="plot-container"></div>
+                    <div id="plot2" class="plot-container"></div>
+                    <div id="plot3" class="plot-container"></div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>HER Analysis Platform | Deployed on Render | <a href="https://github.com/jm96ps/TheHER" target="_blank">GitHub Repository</a></p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
