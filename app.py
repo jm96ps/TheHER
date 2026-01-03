@@ -10,6 +10,10 @@ from scipy import stats
 import json
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add HER script to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'HER script'))
@@ -19,6 +23,7 @@ from utils import hydrogen_fitting, Tafel_Slopes, Theta_VH, Theta_Total
 from her_model import HER_simplified_fitting, rnd
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Physical constants

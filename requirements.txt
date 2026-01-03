@@ -21,3 +21,4 @@ gunicorn==21.2.0
 # Optional: For enhanced data handling
 python-dateutil==2.8.2
 pytz==2023.3
+python-dotenv==1.0.0
