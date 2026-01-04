@@ -67,6 +67,30 @@ This project provides an interactive tool for:
 
 ## Quick Start
 
+### Quick Start for Web App
+
+1. **Run the Flask app**
+   ```bash
+   python app.py
+   ```
+
+2. **Open your browser**
+   - Navigate to `http://localhost:5000`
+
+3. **Upload your data**
+   - Click "Upload LSV Data" and select your `.txt` file
+   - Enter electrode parameters (area, ohmic drop, reference correction)
+
+4. **Choose model and fit**
+   - Select simplified or full model
+   - Click "Fit Data" to perform analysis
+
+5. **Explore results**
+   - Adjust parameters with interactive sliders
+   - View real-time plot updates
+
+### Quick Start for Notebook
+
 1. **Launch Jupyter**
    ```bash
    jupyter notebook
@@ -91,8 +115,32 @@ This project provides an interactive tool for:
    - Use the interactive sliders to explore parameter sensitivity
    - Watch plots update in real-time
 
-## Data Format
+### Quick Start for HER Script
 
+1. **Navigate to the script directory**
+   ```bash
+   cd "HER script"
+   ```
+
+2. **Run the main script**
+   ```bash
+   python main.py
+   ```
+
+3. **Configure parameters**
+   - Edit `main.py` to set your data file path and parameters:
+     ```python
+     file_path = 'path/to/your/data.txt'
+     area_electrode = 0.5
+     ohmic_drop = 6.43
+     ref_correction = 0.924
+     ```
+
+4. **View results**
+   - Fitted parameters will be saved to output files
+   - Plots are generated and saved automatically
+
+## Data Format
 Expected input format for LSV data files:
 
 ```
