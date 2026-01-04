@@ -1,6 +1,6 @@
 # HER Fitting Analysis
 
-**Script and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
+**Web app, Script, and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
 
 [![DOI](https://zenodo.org/badge/1124731941.svg)](https://doi.org/10.5281/zenodo.18099697)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
