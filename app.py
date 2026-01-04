@@ -318,6 +318,112 @@ def calculate_with_params():
         return jsonify({'error': str(e)}), 500
 
 
+
+
+@app.route('/api/export', methods=['POST'])
+def export_results():
+    """
+    Export all fitting results as a ZIP file containing text files
+    """
+    try:
+        import io
+        import zipfile
+        from datetime import datetime
+        
+        data = request.json
+        
+        # Create in-memory ZIP file
+        zip_buffer = io.BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # 1. Export fitting parameters and statistics
+            params_content = "HER Analysis - Fitting Parameters and Statistics\n"
+            params_content += "=" * 60 + "\n"
+            params_content += f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            params_content += f"Model Type: {data.get('model_type', 'simplified')}\n"
+            params_content += "=" * 60 + "\n\n"
+            
+            params_content += "FITTED PARAMETERS:\n"
+            params_content += "-" * 60 + "\n"
+            for param, value in data['fitted_params'].items():
+                params_content += f"{param:12s}: {value:.6e}\n"
+            
+            params_content += "\n\nSTATISTICS:\n"
+            params_content += "-" * 60 + "\n"
+            for stat, value in data['statistics'].items():
+                params_content += f"{stat:20s}: {value}\n"
+            
+            zip_file.writestr('01_parameters_and_statistics.txt', params_content)
+            
+            # 2. Export current-potential curve
+            potential = np.array(data['potential'])
+            current = np.array(data['current'])
+            theoretical_current = np.array(data['theoretical_current'])
+            
+            curve_content = "HER Analysis - Current-Potential Curves\n"
+            curve_content += "=" * 60 + "\n"
+            curve_content += "Potential (V vs RHE) | Experimental Current (A/cm²) | Fitted Current (A/cm²)\n"
+            curve_content += "-" * 60 + "\n"
+            
+            for i in range(len(potential)):
+                curve_content += f"{potential[i]:18.6f} | {current[i]:27.6e} | {theoretical_current[i]:22.6e}\n"
+            
+            zip_file.writestr('02_current_potential_curve.txt', curve_content)
+            
+            # 3. Export surface coverage curve
+            theta = np.array(data['theta'])
+            theta_inv = np.array(data['theta_inv'])
+            
+            coverage_content = "HER Analysis - Surface Coverage\n"
+            coverage_content += "=" * 60 + "\n"
+            coverage_content += "Potential (V vs RHE) | θ (Coverage) | 1-θ (Empty Sites)\n"
+            coverage_content += "-" * 60 + "\n"
+            
+            for i in range(len(potential)):
+                coverage_content += f"{potential[i]:18.6f} | {theta[i]:12.6f} | {theta_inv[i]:17.6f}\n"
+            
+            zip_file.writestr('03_surface_coverage.txt', coverage_content)
+            
+            # 4. Export Tafel slopes
+            tafel_pot = np.array(data['tafel_pot'])
+            tafel_slopes = np.array(data['tafel_slopes'])
+            tafel_theo_pot = np.array(data['tafel_theo_pot'])
+            tafel_theo_slopes = np.array(data['tafel_theo_slopes'])
+            
+            tafel_content = "HER Analysis - Tafel Slopes\n"
+            tafel_content += "=" * 60 + "\n"
+            tafel_content += "\nEXPERIMENTAL TAFEL SLOPES:\n"
+            tafel_content += "-" * 60 + "\n"
+            tafel_content += "Potential (V vs RHE) | Tafel Slope (V/decade)\n"
+            tafel_content += "-" * 60 + "\n"
+            
+            for i in range(len(tafel_pot)):
+                tafel_content += f"{tafel_pot[i]:18.6f} | {tafel_slopes[i]:22.6f}\n"
+            
+            tafel_content += "\n\nTHEORETICAL TAFEL SLOPES:\n"
+            tafel_content += "-" * 60 + "\n"
+            tafel_content += "Potential (V vs RHE) | Tafel Slope (V/decade)\n"
+            tafel_content += "-" * 60 + "\n"
+            
+            for i in range(len(tafel_theo_pot)):
+                tafel_content += f"{tafel_theo_pot[i]:18.6f} | {tafel_theo_slopes[i]:22.6f}\n"
+            
+            zip_file.writestr('04_tafel_slopes.txt', tafel_content)
+        
+        # Prepare the ZIP file for download
+        zip_buffer.seek(0)
+        
+        return send_file(
+            zip_buffer,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f'HER_Analysis_Results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip'
+        )
+        
+    except Exception as e:
+        import traceback
+        return jsonify({'error': str(e), 'traceback': traceback.format_exc()}), 500
+
 @app.route('/health')
 def health():
     """Health check endpoint for Render"""
