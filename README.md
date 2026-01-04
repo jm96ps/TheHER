@@ -6,6 +6,10 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 
+## 🌐 Live Demo
+
+**Try the web app here:** [https://theher.onrender.com/](https://theher.onrender.com/)
+
 ## Overview
 
 This project provides an interactive tool for:
@@ -69,6 +73,12 @@ This project provides an interactive tool for:
 
 ### Quick Start for Web App
 
+**Option 1: Use the Live Demo**
+- Visit [https://theher.onrender.com/](https://theher.onrender.com/)
+- Upload your data and start analyzing immediately (no installation required)
+
+**Option 2: Run Locally**
+
 1. **Run the Flask app**
    ```bash
    python app.py
@@ -87,6 +97,7 @@ This project provides an interactive tool for:
 
 5. **Explore results**
    - Adjust parameters with interactive sliders
+   - View real-time plot updates
    - View real-time plot updates
 
 ### Quick Start for Notebook
