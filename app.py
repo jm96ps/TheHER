@@ -136,26 +136,55 @@ def fit_data():
         # Generate random initial parameters
         from lmfit import Model, create_params
         
-        def HER_simplified_wrapper(x, k1, k1r, k2, k2r, bbv, bbh):
-            vtotal = 2 * (((k1*k2*(1 - np.e**(2*f1*x)))*np.e**(-bbh*x*f1)) / 
-                          (k1*np.e**((bbh - bbv)*f1*x) + k2 + np.e**(f1*x)*
-                          (k1r*np.e**((bbh - bbv)*f1*x) + k2r)))
-            return -F * vtotal
-        
-        # Create model
-        HER_model = Model(HER_simplified_wrapper, independent_vars=['x'])
-        
-        # Generate random initial parameters
-        rand_params = [rnd() for _ in range(4)]
-        
-        params = create_params(
-            k1=dict(value=rand_params[0], max=1e-2, min=1e-20),
-            k1r=dict(value=rand_params[1], max=1e-2, min=1e-20),
-            k2=dict(value=rand_params[2], max=1e-2, min=1e-20),
-            k2r=dict(value=rand_params[3], max=1e-2, min=1e-20),
-            bbv=dict(value=bbv_initial, min=0, max=1, vary=vary_bbv),
-            bbh=dict(value=bbh_initial, min=0, max=1, vary=vary_bbh)
-        )
+        if model_type == 'full':
+            # Full model (3-step: Volmer-Heyrovsky-Tafel)
+            def HER_full_wrapper(x, k1, k1r, k2, k2r, k3, k3r, bbv, bbh):
+                k2r_calc = (k1*k2) / k1r
+                k3r_calc = (k3*k1**2) / k1r**2
+                A1 = -2*k3 + 2*k3r_calc
+                B1 = (-np.e**((-bbv)*f1*x))*k1 - np.e**((1 - bbv)*f1*x)*k1r - \
+                     k2/np.e**(bbh*f1*x) - np.e**((1 - bbh)*f1*x)*k2r_calc - 4*k3r_calc
+                C1 = k1/np.e**(bbv*f1*x) + np.e**((1 - bbh)*f1*x)*k2r_calc + 2*k3r_calc
+                theta = (-B1 - np.sqrt(B1**2 - (4*A1*C1))) / (2*A1)
+                
+                v1 = k1/np.e**(bbv*f1*x) - k1r*np.e**((1-bbv)*f1*x)*theta
+                v2 = k2*theta/np.e**(bbh*f1*x) - k2r_calc*np.e**((1-bbh)*f1*x)
+                v3 = k3*(theta**2) - k3r_calc
+                vtotal = v1 + v2 + v3
+                return -F * vtotal
+            
+            HER_model = Model(HER_full_wrapper, independent_vars=['x'])
+            rand_params = [rnd() for _ in range(6)]
+            
+            params = create_params(
+                k1=dict(value=rand_params[0], max=1e-2, min=1e-20),
+                k1r=dict(value=rand_params[1], max=1e-2, min=1e-20),
+                k2=dict(value=rand_params[2], max=1e-2, min=1e-20),
+                k2r=dict(value=rand_params[3], max=1e-2, min=1e-20),
+                k3=dict(value=rand_params[4], max=1e-2, min=1e-20),
+                k3r=dict(value=rand_params[5], max=1e-2, min=1e-20),
+                bbv=dict(value=bbv_initial, min=0, max=1, vary=vary_bbv),
+                bbh=dict(value=bbh_initial, min=0, max=1, vary=vary_bbh)
+            )
+        else:
+            # Simplified model (2-step: Volmer-Heyrovsky)
+            def HER_simplified_wrapper(x, k1, k1r, k2, k2r, bbv, bbh):
+                vtotal = 2 * (((k1*k2*(1 - np.e**(2*f1*x)))*np.e**(-bbh*x*f1)) / 
+                              (k1*np.e**((bbh - bbv)*f1*x) + k2 + np.e**(f1*x)*
+                              (k1r*np.e**((bbh - bbv)*f1*x) + k2r)))
+                return -F * vtotal
+            
+            HER_model = Model(HER_simplified_wrapper, independent_vars=['x'])
+            rand_params = [rnd() for _ in range(4)]
+            
+            params = create_params(
+                k1=dict(value=rand_params[0], max=1e-2, min=1e-20),
+                k1r=dict(value=rand_params[1], max=1e-2, min=1e-20),
+                k2=dict(value=rand_params[2], max=1e-2, min=1e-20),
+                k2r=dict(value=rand_params[3], max=1e-2, min=1e-20),
+                bbv=dict(value=bbv_initial, min=0, max=1, vary=vary_bbv),
+                bbh=dict(value=bbh_initial, min=0, max=1, vary=vary_bbh)
+            )
         
         # Fit
         result = HER_model.fit(
@@ -176,20 +205,39 @@ def fit_data():
             'bbh': float(result.params['bbh'].value)
         }
         
+        # Add k3 and k3r for full model
+        if model_type == 'full':
+            fitted_params['k3'] = float(result.params['k3'].value)
+            fitted_params['k3r'] = float(result.params['k3r'].value)
+        
         # Calculate predictions
         theoretical_current = result.best_fit
         
         # Calculate surface coverage
-        theta, theta_inv = Theta_VH(
-            potential,
-            result.params['k1'].value,
-            result.params['k1r'].value,
-            result.params['k2'].value,
-            result.params['k2r'].value,
-            result.params['bbv'].value,
-            result.params['bbh'].value,
-            f1
-        )
+        if model_type == 'full':
+            theta, theta_inv = Theta_Total(
+                potential,
+                result.params['k1'].value,
+                result.params['k1r'].value,
+                result.params['k2'].value,
+                result.params['k2r'].value,
+                result.params['k3'].value,
+                result.params['k3r'].value,
+                result.params['bbv'].value,
+                result.params['bbh'].value,
+                f1
+            )
+        else:
+            theta, theta_inv = Theta_VH(
+                potential,
+                result.params['k1'].value,
+                result.params['k1r'].value,
+                result.params['k2'].value,
+                result.params['k2r'].value,
+                result.params['bbv'].value,
+                result.params['bbh'].value,
+                f1
+            )
         
         # Calculate Tafel slopes
         pot_exp, tafel_exp = Tafel_Slopes(potential, current)
