@@ -1,19 +1,8 @@
-
-# Core web framework
-# Curve fitting and optimization
 Flask==3.0.0
-# Flask Web Application Requirements for Render Deployment
 gunicorn==21.2.0
 lmfit==1.2.2
 matplotlib==3.8.2
 numpy==1.26.2
-# Optional: For enhanced data handling
-pandas==2.2.0
-# Production WSGI server
-python-dateutil==2.8.2
+pandas==2.1.4
 python-dotenv==1.0.0
-pytz==2023.3
-# Scientific computing
 scipy==1.11.4
-# Statistical analysis
-Werkzeug==3.0.1
