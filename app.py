@@ -3,7 +3,7 @@ Flask Web Application for Hydrogen Evolution Reaction (HER) Analysis
 Deployable on Render.com
 """
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file, send_file
 import numpy as np
 import pandas as pd
 from scipy import stats

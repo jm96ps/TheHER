@@ -37,3 +37,23 @@
     color: var(--text-secondary);
     font-style: italic;
 }
+
+/* Export controls styling */
+.export-controls {
+    margin-top: 20px;
+    padding: 15px;
+    background: var(--secondary-bg);
+    border-radius: 8px;
+}
+
+.export-controls h3 {
+    margin-bottom: 10px;
+    color: var(--primary-color);
+}
+
+.export-controls small {
+    display: block;
+    margin-top: 8px;
+    color: #666;
+    font-size: 0.85em;
+}
