@@ -13,7 +13,7 @@
 ## Overview
 
 This project provides an interactive tool for:
-- **Fitting** experimental HER data using kinetic models (simplified 2-step or full 3-step mechanism)
+- **Fitting** experimental HER data using kinetic models simplified 2-step (Volmer-Heyrovsky) or full 3-step mechanism(Vomer-Heyrovsky-Tafel)
 - **Real-time parameter adjustment** with interactive sliders showing scientific notation
 - **Dynamic visualization** including:
   - Current vs. potential curves (experimental vs. theoretical)
@@ -26,7 +26,6 @@ This project provides an interactive tool for:
 ✨ **Interactive Sliders**
 - Log-scale sliders for rate constants (k1, k1r, k2, k2r, k3, k3r)
 - Linear sliders for symmetry factors (bbv, bbh)
-- Real-time scientific notation display (e.g., 1.23e-10)
 
 📊 **Four-Panel Analysis Dashboard**
 - Current vs. Potential plot with experimental data overlay
