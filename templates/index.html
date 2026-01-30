@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>TheHER demo</title>
+  </head>
+  <body>
+    <h1>TheHER — MVC demo</h1>
+    <p>Click the button to run a demo fit (uses synthetic data if no file provided).</p>
+
+    <form id="fitForm">
+      <label>Model:
+        <select name="model_type">
+          <option value="simplified">simplified</option>
+          <option value="full">full</option>
+        </select>
+      </label>
+      <label>bbv: <input name="bbv" type="number" step="0.01" value="0.5"/></label>
+      <label>bbh: <input name="bbh" type="number" step="0.01" value="0.5"/></label>
+      <label>Ref potential (V vs SHE): <input name="ref_potential" type="number" step="0.001" value="0.0"/></label>
+      <label>Electrolyte pH: <input name="pH" type="number" step="0.1" value="1.0"/></label>
+      <label>Or provide final reference correction (V): <input name="ref_correction" type="number" step="0.0001" placeholder="e.g. 0.924"/></label>
+      <label>Ohmic drop (mV): <input name="ohmic_drop" type="number" step="0.01" value="6.43" required/></label>
+      <label>Electrode area (cm²): <input name="area_electrode" type="number" step="0.0001" value="0.5" required/></label>
+      <label>Current units:
+        <select name="current_units">
+          <option value="mA" selected>mA</option>
+          <option value="A">A</option>
+        </select>
+      </label>
+      <label>Current column (1-based): <input name="current_col" type="number" step="1" value="1" min="1" required/></label>
+      <label>Potential column (1-based): <input name="potential_col" type="number" step="1" value="2" min="1" required/></label>
+      <label>Upload data file: <input name="datafile" type="file" accept=".txt,.csv" required/></label>
+      <label>Delimiter:
+        <select name="delimiter">
+          <option value="auto" selected>Auto-detect</option>
+            <option value="," >Comma (,)</option>
+          <option value="\t">Tab (\t)</option>
+          <option value=";">Semicolon (;)</option>
+          <option value=" ">Space</option>
+        </select>
+      </label>
+      <label>Temperature (K): <input name="temperature" type="number" step="0.1" value="298.15"/></label>
+      <label>vary_bbv: <input name="vary_bbv" type="checkbox" checked/></label>
+      <label>vary_bbh: <input name="vary_bbh" type="checkbox" checked/></label>
+      <label>method:
+        <select name="fitting_method">
+          <option value="powell">powell</option>
+          <option value="nelder">nelder</option>
+        </select>
+      </label>
+      <button type="submit">Run Fit</button>
+    </form>
+
+    <img id="plot" alt="fit plot" style="max-width:90%;border:1px solid #ccc;"/>
+    <pre id="output"></pre>
+
+    <script>
+      document.getElementById('fitForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const form = new FormData(e.target);
+
+        // fetch image from /plot
+        const resp = await fetch('/plot', { method: 'POST', body: form });
+        if (resp.ok) {
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          document.getElementById('plot').src = url;
+        } else {
+          const j = await resp.json();
+          document.getElementById('output').textContent = JSON.stringify(j, null, 2);
+        }
+
+        // also fetch JSON summary from /fit for parameter details
+        const resp2 = await fetch('/fit', { method: 'POST', body: form });
+        const j2 = await resp2.json();
+        document.getElementById('output').textContent = JSON.stringify(j2, null, 2);
+      });
+    </script>
+  </body>
+</html>

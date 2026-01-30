@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Fit Summary</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ENjdO4Dr2bkBIFxQpeoYz1FQ7847/6bQZ9er5qD5mQmY1wq0nLMwNLD69Npy4HI+" crossorigin="anonymous">
+  <link rel="stylesheet" href="/static/static_old/assets/css/main.css">
+  <style>
+    .param-card { padding:.6rem; }
+    .muted { color:#666; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <header class="mb-3">
+      <h2 class="mb-0">Fit Summary</h2>
+      <p class="muted">Basic statistics and parameter values for the last fit.</p>
+    </header>
+
+    <div class="row">
+      <div class="col-md-5">
+        <div class="card mb-3 p-3">
+          <h5>Statistics</h5>
+          <table class="table table-sm mt-2">
+            <tbody>
+              <tr><th>Chi-square</th><td>{{ stats.chisqr }}</td></tr>
+              <tr><th>Reduced chi-square</th><td>{{ stats.redchi }}</td></tr>
+              <tr><th>AIC</th><td>{{ stats.aic }}</td></tr>
+              <tr><th>BIC</th><td>{{ stats.bic }}</td></tr>
+              <tr><th>Free params</th><td>{{ stats.nfree }}</td></tr>
+              <tr><th>Number of points</th><td>{{ n_points }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card p-3">
+          <h5>Parameters</h5>
+          <div class="row row-cols-1 row-cols-md-2 g-2 mt-2">
+            {% for k,v in parameters.items() %}
+            <div class="col">
+              <div class="param-card border rounded">
+                <strong>{{ k }}</strong>
+                <div class="muted">{{ v }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-7">
+        <h5>Plots</h5>
+        <p class="muted">Click an image to open in a new tab.</p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="#" onclick="openImage('/plot')"><img src="/plot" alt="fit" class="img-fluid" style="max-width:360px;"/></a>
+          <a href="#" onclick="openImage('/plot_theta')"><img src="/plot_theta" alt="theta" class="img-fluid" style="max-width:360px;"/></a>
+          <a href="#" onclick="openImage('/plot_tafel')"><img src="/plot_tafel" alt="tafel" class="img-fluid" style="max-width:360px;"/></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    function openImage(path){ window.open(path, '_blank'); }
+  </script>
+</body>
+</html>

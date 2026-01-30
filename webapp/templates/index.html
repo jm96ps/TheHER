@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TheHER — Fit & Plot</title>
+  <!-- Bootstrap (CDN) + Prologue copy -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ENjdO4Dr2bkBIFxQpeoYz1FQ7847/6bQZ9er5qD5mQmY1wq0nLMwNLD69Npy4HI+" crossorigin="anonymous">
+  <link rel="stylesheet" href="/static/static_old/assets/css/main.css">
+  <style>
+    /* Vertical form layout fallback */
+    #fitForm { max-width: 100%; }
+    /* Fixed plot and thumbnail sizing for consistent layout */
+    #plot { width: 100%; max-width: 520px; height: 360px; object-fit: contain; background: #fff; border: 1px solid #e6e6e6; }
+    #thetaThumb, #tafelThumb { width: 100%; max-width: 240px; height: 160px; object-fit: contain; background:#fff; border:1px solid #e6e6e6; }
+    .param-card { background: #fff; padding: .6rem; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    .muted { color: #666; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <div class="inner">
+      <h1>TheHER</h1>
+      <p>Electrocatalysis data fitting — upload your LSV/LSV-like file.</p>
+    </div>
+  </header>
+
+  <section id="banner">
+    <div class="inner">
+      <h2>Fit HER models — simple, fast, and reproducible</h2>
+      <p class="tagline">Provide raw current in Amperes (A). Electrode area is used only for plotting.</p>
+    </div>
+  </section>
+
+  <main id="main" class="container py-4">
+    <div class="row gx-4">
+      <div class="col-lg-5">
+        <section id="one" class="card mb-4 p-3">
+          <h5 class="card-title">Data & Parameters</h5>
+          <form id="fitForm">
+            <div class="mb-2">
+              <label class="form-label">Model</label>
+              <select name="model_type" class="form-select">
+                <option value="simplified">simplified</option>
+                <option value="full">full</option>
+              </select>
+            </div>
+
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">Initial bbv</label><input name="bbv" class="form-control" type="number" step="0.01" value="0.5" /></div>
+              <div class="col-6"><label class="form-label">Initial bbh</label><input name="bbh" class="form-control" type="number" step="0.01" value="0.5" /></div>
+            </div>
+
+            <div class="mb-2"><label class="form-label">Ref potential (V)</label><input name="ref_potential" class="form-control" type="number" step="0.001" /></div>
+            <div class="mb-2"><label class="form-label">pH</label><input name="pH" class="form-control" type="number" step="0.1" /></div>
+            <div class="mb-2"><label class="form-label">Ref correction (V)</label><input name="ref_correction" class="form-control" type="number" step="0.0001" /></div>
+
+            <div class="mb-2"><label class="form-label">Ohmic drop (Ω·cm²)</label><input name="ohmic_drop" class="form-control" type="text" required /></div>
+            <div class="mb-2"><label class="form-label">Electrode area (cm²)</label><input name="area_electrode" class="form-control" type="text" required /></div>
+
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">Current col (1-based)</label><input name="current_col" class="form-control" type="number" min="1" value="1" required /></div>
+              <div class="col-6"><label class="form-label">Potential col (1-based)</label><input name="potential_col" class="form-control" type="number" min="1" value="2" required /></div>
+            </div>
+
+            <div class="mb-2"><label class="form-label">Upload data file</label><input name="datafile" class="form-control" type="file" accept=".txt,.csv" required /></div>
+
+            <div class="mb-2"><label class="form-label">Delimiter</label>
+              <select name="delimiter" class="form-select">
+                <option value="auto">Auto-detect</option>
+                <option value=",">Comma (,)</option>
+                <option value="\t">Tab (\t)</option>
+                <option value=";">Semicolon (;)</option>
+                <option value=" ">Space</option>
+              </select>
+            </div>
+
+            <div class="mb-2"><label class="form-label">Temperature (K)</label><input name="temperature" class="form-control" type="number" step="0.1" value="298.15" /></div>
+
+            <div class="form-check form-switch mb-2"><input name="vary_bbv" class="form-check-input" type="checkbox" checked><label class="form-check-label">vary_bbv</label></div>
+            <div class="form-check form-switch mb-2"><input name="vary_bbh" class="form-check-input" type="checkbox" checked><label class="form-check-label">vary_bbh</label></div>
+
+            <div class="mb-2"><label class="form-label">Method</label><select name="fitting_method" class="form-select"><option value="powell">powell</option><option value="nelder">nelder</option></select></div>
+
+            <div class="d-flex gap-2 mt-2">
+              <button type="submit" class="btn btn-primary">Run Fit & Plot</button>
+              <button type="button" id="openSummary" class="btn btn-outline-secondary">Open Summary</button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <div class="col-lg-7">
+        <section id="results" class="card mb-4 p-3">
+          <h5 class="card-title">Results</h5>
+          <div class="d-flex flex-column flex-lg-row gap-3">
+            <div>
+              <img id="plot" alt="fit plot" class="img-fluid" />
+              <div class="mt-2 d-flex gap-2">
+                <button id="downloadJson" class="btn btn-sm btn-outline-primary">Download JSON</button>
+              </div>
+            </div>
+            <div style="flex:1;min-width:280px;">
+              <h6>Fit Statistics</h6>
+              <div id="stats"></div>
+              <h6 class="mt-2">Parameters</h6>
+              <div id="params" class="row row-cols-1 row-cols-md-2 g-2"></div>
+              <h6 class="mt-2">Derived Plots</h6>
+              <div class="d-flex gap-2 flex-wrap">
+                <img id="thetaThumb" src="" alt="theta" class="img-thumbnail"/>
+                <img id="tafelThumb" src="" alt="tafel" class="img-thumbnail"/>
+              </div>
+              <pre id="output"></pre>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+      <h2>Results</h2>
+      <div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <img id="plot" alt="fit plot" style="max-width:420px;display:block;" />
+          <div style="margin-top:.5rem;">
+            <button id="openSummary" class="button">Open Full Summary</button>
+            <button id="downloadJson" class="button">Download JSON</button>
+          </div>
+        </div>
+        <div style="flex:1;min-width:300px;">
+          <h4>Fit Statistics</h4>
+          <div id="stats"></div>
+          <h4>Parameters</h4>
+          <div id="params" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.5rem;"></div>
+          <h4>Derived Plots</h4>
+          <div style="display:flex;gap:.5rem;">
+            <img id="thetaThumb" src="" alt="theta" style="max-width:160px;cursor:pointer;"/>
+            <img id="tafelThumb" src="" alt="tafel" style="max-width:160px;cursor:pointer;"/>
+          </div>
+          <pre id="output"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer">
+    <div class="inner">
+      <p>Template inspired by HTML5 UP — Prologue. Templates licensed CC BY 3.0.</p>
+    </div>
+  </footer>
+
+  <script>
+  (function(){
+    const form = document.getElementById('fitForm')
+    const out = document.getElementById('output')
+    const img = document.getElementById('plot')
+
+    const summaryBtn = document.getElementById('openSummary')
+    const downloadBtn = document.getElementById('downloadJson')
+    const statsDiv = document.getElementById('stats')
+    const paramsDiv = document.getElementById('params')
+    const thetaThumb = document.getElementById('thetaThumb')
+    const tafelThumb = document.getElementById('tafelThumb')
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      out.textContent = 'Running fit...'
+      statsDiv.innerHTML = ''
+      paramsDiv.innerHTML = ''
+      img.src = ''
+      thetaThumb.src = ''
+      tafelThumb.src = ''
+      try {
+        const fd = new FormData(form)
+        const fitRes = await fetch('/fit', { method: 'POST', body: fd })
+        const fitJson = await fitRes.json()
+        out.textContent = JSON.stringify(fitJson, null, 2)
+
+        if (!fitJson.success) {
+          statsDiv.textContent = 'Fit failed: ' + (fitJson.error || '')
+          return
+        }
+
+        // render stats
+        const s = fitJson.stats || {}
+        statsDiv.innerHTML = `<table style="width:100%"><tr><th>Chi2</th><td>${s.chisqr}</td></tr><tr><th>redChi</th><td>${s.redchi}</td></tr><tr><th>AIC</th><td>${s.aic}</td></tr><tr><th>BIC</th><td>${s.bic}</td></tr><tr><th>nfree</th><td>${s.nfree}</td></tr><tr><th>n_points</th><td>${fitJson.n_points}</td></tr></table>`
+
+        // render parameters
+        const p = fitJson.parameters || {}
+        for (const k of Object.keys(p)) {
+          const card = document.createElement('div')
+          card.className = 'param-card'
+          card.innerHTML = `<strong>${k}</strong><div class="muted">${p[k]}</div>`
+          paramsDiv.appendChild(card)
+        }
+
+        // request plots
+        const plotRes = await fetch('/plot', { method: 'POST', body: new FormData(form) })
+        if (plotRes.ok) {
+          const blob = await plotRes.blob()
+          img.src = URL.createObjectURL(blob)
+        }
+        const thetaRes = await fetch('/plot_theta', { method: 'POST', body: new FormData(form) })
+        if (thetaRes.ok) { thetaThumb.src = URL.createObjectURL(await thetaRes.blob()) }
+        const tafelRes = await fetch('/plot_tafel', { method: 'POST', body: new FormData(form) })
+        if (tafelRes.ok) { tafelThumb.src = URL.createObjectURL(await tafelRes.blob()) }
+
+        summaryBtn.onclick = () => window.open('/fit_summary', '_blank')
+        downloadBtn.onclick = () => {
+          const a = document.createElement('a')
+          const blob = new Blob([JSON.stringify(fitJson, null, 2)], {type:'application/json'})
+          a.href = URL.createObjectURL(blob)
+          a.download = 'fit_results.json'
+          a.click()
+        }
+
+        thetaThumb.addEventListener('click', () => window.open('/plot_theta', '_blank'))
+        tafelThumb.addEventListener('click', () => window.open('/plot_tafel', '_blank'))
+
+      } catch (err) {
+        out.textContent = 'Error: ' + err.message
+      }
+    })
+  })()
+  </script>
+    <!-- Prologue scripts (served via static_old proxy) -->
+    <script src="/static/static_old/assets/js/main.js"></script>
+</body>
+</html>
