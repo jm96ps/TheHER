@@ -23,6 +23,7 @@
   {% extends 'her/dashboard/base_dashboard.html' %}
   {% load static %}
 
+<<<<<<< HEAD
   {% block content %}
   <style>
     /* Inline page styles carried from legacy template */
@@ -116,6 +117,176 @@
           </div>
         </section>
       </div>
+=======
+{% block content %}
+<div class="card main-card p-3">
+  <h5 class="card-title">Data & Parameters</h5>
+  <div class="mb-3">
+    <h1 class="h4">TheHER — HER fitting web application</h1>
+    <div class="small text-muted">
+      <p>Minimal README: how to run and where to find features.</p>
+      <p>Requirements: Python 3.10+ (recommended). Create a virtual environment and install dependencies with <code>pip install -r requirements.txt</code>.</p>
+      <p>Run (development): <code>python -m webapp.app</code> (or run the Django server with <code>python manage.py runserver</code>).</p>
+      <p>Open the dashboard at <code>http://127.0.0.1:8000/</code>. Use the dashboard to upload LSV-like data, set experimental parameters, and run fits (simplified or full model).</p>
+      <p>See the Documentation page in the site menu for tips, key parameters and model equations.</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-5">
+      <form id="fitForm">
+        <!-- Section 1: Data -->
+        <div class="card mb-3">
+          <div class="card-body">
+            <h6 class="card-title">1 — Data</h6>
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">Current col (1-based)</label><input name="current_col" class="form-control" type="number" min="1" value="1" required /></div>
+              <div class="col-6"><label class="form-label">Potential col (1-based)</label><input name="potential_col" class="form-control" type="number" min="1" value="2" required /></div>
+            </div>
+            <div class="mb-2 mt-2"><label class="form-label">Upload data file</label><input name="datafile" class="form-control" type="file" accept=".txt,.csv" required /></div>
+            <div class="mb-2"><label class="form-label">Separator</label>
+              <select name="delimiter" class="form-select">
+                <option value="auto">Auto-detect</option>
+                <option value=",">Comma (,)</option>
+                <option value="\t">Tab (\t)</option>
+                <option value=";">Semicolon (;)</option>
+                <option value=" ">Space</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 2: Experimental Parameters -->
+        <div class="card mb-3">
+          <div class="card-body">
+            <h6 class="card-title">2 — Experimental Parameters</h6>
+            <div class="row g-2">
+              <div class="col-6"><label class="form-label">Ref potential <span class="helper">E<sub>ref</sub> (V)</span></label><input name="ref_potential" class="form-control" type="number" step="0.001" /></div>
+              <div class="col-6"><label class="form-label">pH</label><input name="pH" class="form-control" type="number" step="0.1" /></div>
+            </div>
+            <div class="row g-2 mt-2">
+              <div class="col-6"><label class="form-label">Ohmic drop <span class="helper">&Delta;R (Ω·cm²)</span></label><input name="ohmic_drop" class="form-control" type="text" required /></div>
+              <div class="col-6"><label class="form-label">Electrode area <span class="helper">A<sub>e</sub> (cm²)</span></label><input name="area_electrode" class="form-control" type="text" required /></div>
+            </div>
+            <div class="mt-2"><label class="form-label">Temperature (K)</label><input name="temperature" class="form-control" type="number" step="0.1" value="298.15" /></div>
+            <!-- 'Ref correction' option removed per request -->
+          </div>
+        </div>
+
+        <!-- Section 3: Fitting Parameters -->
+        <div class="card mb-3">
+          <div class="card-body">
+            <h6 class="card-title">3 — Fitting Parameters</h6>
+            <div class="mb-2">
+              <label class="form-label">Model</label>
+              <select name="model_type" class="form-select">
+                <option value="simplified">simplified</option>
+                <option value="full">full</option>
+              </select>
+            </div>
+            <!-- bbv and bbh moved to Advanced parameter controls -->
+            <div class="mt-2"><label class="form-label">Method</label><select name="fitting_method" class="form-select"><option value="powell">powell</option><option value="nelder">nelder</option></select></div>
+            <details class="mt-3">
+              <summary class="small">Advanced parameter controls (initial / min / max / vary)</summary>
+              <div class="mt-2">
+                <div class="small text-muted mb-2">Provide initial, min and max (scientific notation OK); leave initial empty for automatic guess.</div>
+                <div class="row g-2">
+                  <div class="col-12">
+                    <div class="row g-1 align-items-end">
+                      <div class="col-2"><label class="form-label">Param</label></div>
+                      <div class="col-3"><label class="form-label">Initial</label></div>
+                      <div class="col-3"><label class="form-label">Min</label></div>
+                      <div class="col-3"><label class="form-label">Max</label></div>
+                      <div class="col-1"><label class="form-label">Vary</label></div>
+                    </div>
+                  </div>
+
+                  <!-- k1 -->
+                  <div class="col-12" data-model="simplified full">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>k1</strong></div>
+                      <div class="col-3"><input name="k1_init" class="form-control form-control-sm" type="number" step="any" placeholder="auto" /></div>
+                      <div class="col-3"><input name="k1_min" class="form-control form-control-sm" type="number" step="any" value="1e-20" /></div>
+                      <div class="col-3"><input name="k1_max" class="form-control form-control-sm" type="number" step="any" value="1e-2" /></div>
+                      <div class="col-1"><input name="vary_k1" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+
+                  <!-- k1r -->
+                  <div class="col-12" data-model="simplified full">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>k1r</strong></div>
+                      <div class="col-3"><input name="k1r_init" class="form-control form-control-sm" type="number" step="any" placeholder="auto" /></div>
+                      <div class="col-3"><input name="k1r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20" /></div>
+                      <div class="col-3"><input name="k1r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2" /></div>
+                      <div class="col-1"><input name="vary_k1r" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+
+                  <!-- k2 -->
+                  <div class="col-12" data-model="simplified full">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>k2</strong></div>
+                      <div class="col-3"><input name="k2_init" class="form-control form-control-sm" type="number" step="any" placeholder="auto" /></div>
+                      <div class="col-3"><input name="k2_min" class="form-control form-control-sm" type="number" step="any" value="1e-20" /></div>
+                      <div class="col-3"><input name="k2_max" class="form-control form-control-sm" type="number" step="any" value="1e-2" /></div>
+                      <div class="col-1"><input name="vary_k2" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+
+                  <!-- k2r (simplified only) -->
+                  <div class="col-12" data-model="simplified">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>k2r</strong></div>
+                      <div class="col-3"><input name="k2r_init" class="form-control form-control-sm" type="number" step="any" placeholder="auto" /></div>
+                      <div class="col-3"><input name="k2r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20" /></div>
+                      <div class="col-3"><input name="k2r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2" /></div>
+                      <div class="col-1"><input name="vary_k2r" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+
+                  <!-- k3 (full only) -->
+                  <div class="col-12" data-model="full">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>k3</strong></div>
+                      <div class="col-3"><input name="k3_init" class="form-control form-control-sm" type="number" step="any" placeholder="auto" /></div>
+                      <div class="col-3"><input name="k3_min" class="form-control form-control-sm" type="number" step="any" value="1e-20" /></div>
+                      <div class="col-3"><input name="k3_max" class="form-control form-control-sm" type="number" step="any" value="1e-2" /></div>
+                      <div class="col-1"><input name="vary_k3" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+
+                  <!-- bbv -->
+                  <div class="col-12" data-model="simplified full">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>&beta;<sub>v</sub></strong></div>
+                      <div class="col-3"><input name="bbv" class="form-control form-control-sm" type="number" step="0.01" placeholder="0.5" /></div>
+                      <div class="col-3"><input name="bbv_min" class="form-control form-control-sm" type="number" step="0.01" value="0.0" /></div>
+                      <div class="col-3"><input name="bbv_max" class="form-control form-control-sm" type="number" step="0.01" value="1.0" /></div>
+                      <div class="col-1"><input name="vary_bbv" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+
+                  <!-- bbh -->
+                  <div class="col-12" data-model="simplified full">
+                    <div class="row g-1 align-items-center">
+                      <div class="col-2"><strong>&beta;<sub>h</sub></strong></div>
+                      <div class="col-3"><input name="bbh" class="form-control form-control-sm" type="number" step="0.01" placeholder="0.5" /></div>
+                      <div class="col-3"><input name="bbh_min" class="form-control form-control-sm" type="number" step="0.01" value="0.0" /></div>
+                      <div class="col-3"><input name="bbh_max" class="form-control form-control-sm" type="number" step="0.01" value="1.0" /></div>
+                      <div class="col-1"><input name="vary_bbh" class="form-check-input" type="checkbox" checked /></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+            <div class="d-flex gap-2 mt-3">
+              <button type="submit" class="btn btn-primary">Run Fit & Plot</button>
+              <button type="button" id="openSummary" class="btn btn-outline-secondary">Open Summary</button>
+            </div>
+          </div>
+        </div>
+      </form>
+>>>>>>> 877ac061 (Prepare Render deployment: add Procfile, render.yaml, static settings; fix docs and sidebar; update requirements and env sample)
     </div>
   </div>
 
@@ -194,7 +365,21 @@
     </div>
   </div>
 </div>
-
+<!-- Footer: README-style references and personal info -->
+<div class="card mt-4 mb-4">
+  <div class="card-body small text-muted">
+    <p><strong>References</strong></p>
+    <ul>
+      <li>Lasia, Andrzej. “Mechanism and Kinetics of the Hydrogen Evolution Reaction.” International Journal of Hydrogen Energy 44, no. 36 (2019): 19484–518. 10.1016/j.ijhydene.2019.05.183</li>
+      <li>Onno van der Heijden, Sunghak Park, Rafaël E. Vos, Jordy J. J. Eggebeen, and Marc T. M. Koper. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” ACS Energy Letters, American Chemical Society, April 1, 2024, 1871–79. 10.1021/acsenergylett.4c00266</li>
+    </ul>
+    <hr />
+    <div><strong>Contact</strong>: For issues or questions open an issue or email: jamesmario@usp.br</div>
+    <div class="mt-2"><strong>How to cite</strong>: James M. P. Silva. (2026). jm96ps/TheHER: v1.1 (v1.1). Zenodo. https://doi.org/10.5281/zenodo.18166078</div>
+    <div class="mt-2"><strong>Last Updated</strong>: January 2026</div>
+    <div><strong>Status</strong>: Active Development ✓</div>
+  </div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Keep existing client-side logic intact; minimal adjustments for template
@@ -298,20 +483,36 @@
       }
 
       const s = fitJson.stats || {}
-      statsDiv.innerHTML = `<table class="table table-sm"><tr><th>Chi2</th><td>${s.chisqr}</td></tr><tr><th>redChi</th><td>${s.redchi}</td></tr><tr><th>AIC</th><td>${s.aic}</td></tr><tr><th>BIC</th><td>${s.bic}</td></tr><tr><th>nfree</th><td>${s.nfree}</td></tr><tr><th>n_points</th><td>${fitJson.n_points}</td></tr></table>`
+      const fmt = (v) => {
+        const n = Number(v)
+        if (Number.isFinite(n)) {
+          // scientific if very large/small, else 3 sig figs
+          if (Math.abs(n) !== 0 && (Math.abs(n) < 1e-3 || Math.abs(n) >= 1e4)) return n.toExponential(3)
+          return n.toPrecision(3)
+        }
+        return v === null || v === undefined ? '' : String(v)
+      }
+
+      statsDiv.innerHTML = `<table class="table table-sm"><tr><th>χ²</th><td>${fmt(s.chisqr)}</td></tr><tr><th>redχ</th><td>${fmt(s.redchi)}</td></tr><tr><th>AIC</th><td>${fmt(s.aic)}</td></tr><tr><th>BIC</th><td>${fmt(s.bic)}</td></tr><tr><th>nfree</th><td>${fmt(s.nfree)}</td></tr><tr><th>n_points</th><td>${fmt(fitJson.n_points)}</td></tr></table>`
 
       const p = fitJson.parameters || {}
       for (const k of Object.keys(p)) {
+        const val = p[k]
+        const n = Number(val)
+        const display = Number.isFinite(n) ? (Math.abs(n) !== 0 && (Math.abs(n) < 1e-3 || Math.abs(n) >= 1e4) ? n.toExponential(3) : n.toPrecision(3)) : String(val)
         const card = document.createElement('div')
         card.className = 'param-card'
-        card.innerHTML = `<strong>${k}</strong><div class="muted">${p[k]}</div>`
+        card.innerHTML = `<strong>${k}</strong><div class="muted">${display}</div>`
         paramsDiv.appendChild(card)
       }
 
       const plotRes = await fetch('/plot', { method: 'POST', body: new FormData(form) })
       if (plotRes.ok) { img.src = URL.createObjectURL(await plotRes.blob()) }
+
+      // Request theta coverage plot (supported for both simplified and full models)
       const thetaRes = await fetch('/plot_theta', { method: 'POST', body: new FormData(form) })
       if (thetaRes.ok) { thetaThumb.src = URL.createObjectURL(await thetaRes.blob()) }
+
       const tafelRes = await fetch('/plot_tafel', { method: 'POST', body: new FormData(form) })
       if (tafelRes.ok) { tafelThumb.src = URL.createObjectURL(await tafelRes.blob()) }
 
@@ -324,13 +525,43 @@
         a.click()
       }
 
-      thetaThumb.addEventListener('click', () => window.open('/plot_theta', '_blank'))
-      tafelThumb.addEventListener('click', () => window.open('/plot_tafel', '_blank'))
+      // Open the already-fetched blob URL in a new tab instead of re-calling the POST endpoint
+      thetaThumb.addEventListener('click', () => { if (thetaThumb.src) window.open(thetaThumb.src, '_blank') })
+      tafelThumb.addEventListener('click', () => { if (tafelThumb.src) window.open(tafelThumb.src, '_blank') })
 
     } catch (err) {
       out.textContent = 'Error: ' + err.message
     }
   })
+})()
+</script>
+<script>
+// Toggle advanced parameter visibility based on selected model
+(function(){
+  const modelSelect = document.querySelector('select[name="model_type"]')
+  if (!modelSelect) return
+  const rows = Array.from(document.querySelectorAll('[data-model]'))
+  function updateVisibility(){
+    const m = (modelSelect.value || '').toLowerCase()
+    rows.forEach(el => {
+      const spec = (el.getAttribute('data-model')||'').toLowerCase()
+      const allowed = spec.split(/\s+/)
+      if (allowed.includes(m) || allowed.includes('both') || allowed.includes('all')){
+        el.style.display = ''
+      } else {
+        el.style.display = 'none'
+        // also clear value of inputs when hidden (prevent accidental submission)
+        const inputs = el.querySelectorAll('input')
+        inputs.forEach(i => {
+          if (i.type === 'checkbox') { i.checked = i.defaultChecked }
+          else { /* leave placeholders; do not clear text automatically */ }
+        })
+      }
+    })
+  }
+  modelSelect.addEventListener('change', updateVisibility)
+  // initial run
+  updateVisibility()
 })()
 </script>
 {% endblock %}

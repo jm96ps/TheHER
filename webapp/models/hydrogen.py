@@ -23,6 +23,12 @@ class hydrogen_fitting:
     def __init__(self, file_path=None, area_electrode=None, ohmic_drop=0.0, ref_correction=None,
                  ref_potential=None, pH=None, temperature=None, gas_constant=None,
                  bbv_initial=0.5, bbh_initial=0.5, vary_bbv=True, vary_bbh=True,
+                 bbv_min=0.0, bbv_max=1.0, bbh_min=0.0, bbh_max=1.0,
+                 k1_initial=None, k1_min=1e-20, k1_max=1e-2, vary_k1=True,
+                 k1r_initial=None, k1r_min=1e-20, k1r_max=1e-2, vary_k1r=True,
+                 k2_initial=None, k2_min=1e-20, k2_max=1e-2, vary_k2=True,
+                 k2r_initial=None, k2r_min=1e-20, k2r_max=1e-2, vary_k2r=True,
+                 k3_initial=None, k3_min=1e-20, k3_max=1e-2, vary_k3=True,
                  delimiter='auto', current_col=1, potential_col=2, current_units='A'):
         self.file_path = file_path
         self.area_electrode = area_electrode
@@ -36,7 +42,55 @@ class hydrogen_fitting:
         self.bbh_initial = bbh_initial
         self.vary_bbv = vary_bbv
         self.vary_bbh = vary_bbh
+        # bounds for symmetry parameters (allow user override)
+        try:
+            self.bbv_min = float(bbv_min)
+        except Exception:
+            self.bbv_min = 0.0
+        try:
+            self.bbv_max = float(bbv_max)
+        except Exception:
+            self.bbv_max = 1.0
+        try:
+            self.bbh_min = float(bbh_min)
+        except Exception:
+            self.bbh_min = 0.0
+        try:
+            self.bbh_max = float(bbh_max)
+        except Exception:
+            self.bbh_max = 1.0
         self.delimiter = delimiter
+        # rate constant defaults / user overrides
+        def _safe_float(v, default=None):
+            try:
+                return float(v) if v is not None else default
+            except Exception:
+                return default
+
+        self.k1_initial = _safe_float(k1_initial, None)
+        self.k1_min = _safe_float(k1_min, 1e-20)
+        self.k1_max = _safe_float(k1_max, 1e-2)
+        self.vary_k1 = bool(vary_k1)
+
+        self.k1r_initial = _safe_float(k1r_initial, None)
+        self.k1r_min = _safe_float(k1r_min, 1e-20)
+        self.k1r_max = _safe_float(k1r_max, 1e-2)
+        self.vary_k1r = bool(vary_k1r)
+
+        self.k2_initial = _safe_float(k2_initial, None)
+        self.k2_min = _safe_float(k2_min, 1e-20)
+        self.k2_max = _safe_float(k2_max, 1e-2)
+        self.vary_k2 = bool(vary_k2)
+
+        self.k2r_initial = _safe_float(k2r_initial, None)
+        self.k2r_min = _safe_float(k2r_min, 1e-20)
+        self.k2r_max = _safe_float(k2r_max, 1e-2)
+        self.vary_k2r = bool(vary_k2r)
+
+        self.k3_initial = _safe_float(k3_initial, None)
+        self.k3_min = _safe_float(k3_min, 1e-20)
+        self.k3_max = _safe_float(k3_max, 1e-2)
+        self.vary_k3 = bool(vary_k3)
         # user-provided column mapping (1-based indices in the UI), convert to 0-based
         try:
             self.current_col = int(current_col) - 1 if current_col is not None else 0
@@ -206,26 +260,37 @@ class hydrogen_fitting:
         # build parameter set depending on model
         if self.model_type == 'HER_simplified_fitting':
             rand_params = np.array([rnd() for _ in range(6)])
+            # determine k initial/min/max/vary using user overrides when provided
+            k1_val = self.k1_initial if self.k1_initial is not None else rand_params[0]
+            k1r_val = self.k1r_initial if self.k1r_initial is not None else rand_params[1]
+            k2_val = self.k2_initial if self.k2_initial is not None else rand_params[2]
+            k2r_val = self.k2r_initial if self.k2r_initial is not None else rand_params[3]
+
             params = create_params(
-                k1=dict(value=rand_params[0], max=1e-2, min=1e-20),
-                k1r=dict(value=rand_params[1], max=1e-2, min=1e-20),
-                k2=dict(value=rand_params[2], max=1e-2, min=1e-20),
-                k2r=dict(value=rand_params[3], max=1e-2, min=1e-20),
-                bbv=dict(value=self.bbv_initial, min=0, max=1, vary=self.vary_bbv),
-                bbh=dict(value=self.bbh_initial, min=0, max=1, vary=self.vary_bbh)
+                k1=dict(value=k1_val, min=self.k1_min, max=self.k1_max, vary=self.vary_k1),
+                k1r=dict(value=k1r_val, min=self.k1r_min, max=self.k1r_max, vary=self.vary_k1r),
+                k2=dict(value=k2_val, min=self.k2_min, max=self.k2_max, vary=self.vary_k2),
+                k2r=dict(value=k2r_val, min=self.k2r_min, max=self.k2r_max, vary=self.vary_k2r),
+                bbv=dict(value=self.bbv_initial, min=self.bbv_min, max=self.bbv_max, vary=self.vary_bbv),
+                bbh=dict(value=self.bbh_initial, min=self.bbh_min, max=self.bbh_max, vary=self.vary_bbh)
             )
         else:
             # full model params
             rand_params = np.array([rnd() for _ in range(8)])
+            k1_val = self.k1_initial if self.k1_initial is not None else rand_params[0]
+            k1r_val = self.k1r_initial if self.k1r_initial is not None else rand_params[1]
+            k2_val = self.k2_initial if self.k2_initial is not None else rand_params[2]
+            k3_val = self.k3_initial if self.k3_initial is not None else rand_params[3]
+
             params = create_params(
-                k1=dict(value=rand_params[0], max=1e-2, min=1e-20),
-                k1r=dict(value=rand_params[1], max=1e-2, min=1e-20),
-                k2=dict(value=rand_params[2], max=1e-2, min=1e-20),
+                k1=dict(value=k1_val, min=self.k1_min, max=self.k1_max, vary=self.vary_k1),
+                k1r=dict(value=k1r_val, min=self.k1r_min, max=self.k1r_max, vary=self.vary_k1r),
+                k2=dict(value=k2_val, min=self.k2_min, max=self.k2_max, vary=self.vary_k2),
                 k2r=dict(expr='(k1*k2)/k1r'),
-                k3=dict(value=rand_params[3], max=1e-2, min=1e-20),
+                k3=dict(value=k3_val, min=self.k3_min, max=self.k3_max, vary=self.vary_k3),
                 k3r=dict(expr='(k3*k1**2)/k1r**2'),
-                bbv=dict(value=self.bbv_initial, min=0, max=1, vary=self.vary_bbv),
-                bbh=dict(value=self.bbh_initial, min=0, max=1, vary=self.vary_bbh)
+                bbv=dict(value=self.bbv_initial, min=self.bbv_min, max=self.bbv_max, vary=self.vary_bbv),
+                bbh=dict(value=self.bbh_initial, min=self.bbh_min, max=self.bbh_max, vary=self.vary_bbh)
             )
 
         params._asteval.symtable['x'] = self.potential
@@ -273,20 +338,11 @@ class hydrogen_fitting:
         if self.result_model is None:
             raise ValueError('No fit available to compute theta')
         model_type = getattr(self, 'model_type', '')
-        if 'full' not in model_type.lower():
-            raise ValueError('Theta available only for full model fits')
 
         params = self.result_model.params
         def _val(n):
             p = params.get(n)
             return float(p.value) if p is not None else 0.0
-
-        k1 = _val('k1')
-        k1r = _val('k1r')
-        k2 = _val('k2')
-        k3 = _val('k3')
-        bbv = _val('bbv')
-        bbh = _val('bbh')
 
         f1_val = getattr(self, 'f1', 38.92)
         if x is None:
@@ -294,17 +350,50 @@ class hydrogen_fitting:
         else:
             x = np.asarray(x, dtype=float)
 
-        k2r_calc = (k1 * k2) / k1r if k1r != 0 else 0.0
-        k3r_calc = (k3 * k1 ** 2) / (k1r ** 2) if k1r != 0 else 0.0
-        A1 = -2 * k3 + 2 * k3r_calc
-        B1 = (-np.e ** ((-bbv) * f1_val * x)) * k1 - np.e ** ((1 - bbv) * f1_val * x) * k1r - k2 / np.e ** (bbh * f1_val * x) - np.e ** ((1 - bbh) * f1_val * x) * k2r_calc - 4 * k3r_calc
-        C1 = k1 / np.e ** (bbv * f1_val * x) + np.e ** ((1 - bbh) * f1_val * x) * k2r_calc + 2 * k3r_calc
-        disc = B1 ** 2 - (4 * A1 * C1)
-        disc = np.where(disc < 0, 0.0, disc)
-        denom = 2 * A1
-        denom = np.where(denom == 0, np.nan, denom)
-        theta = (-B1 - np.sqrt(disc)) / denom
-        return theta
+        # Helper: Theta_VH (simplified model) - exact copy from original her_model.py
+        def Theta_VH_local(x_arr, k1, k1r, k2, k2r, bbv, bbh, f1_val=f1_val):
+            theta = (k1/np.e**(bbv*f1_val*x_arr) + np.e**((1 - bbh)*f1_val*x_arr)*k2r) / \
+                    (k1/np.e**(bbv*f1_val*x_arr) + np.e**((1 - bbv)*f1_val*x_arr)*k1r + 
+                     k2/np.e**(bbh*f1_val*x_arr) + np.e**((1 - bbh)*f1_val*x_arr)*k2r)
+            return theta, 1 - theta
+
+        # Helper: Theta_Total (full model) - exact copy from original her_model.py
+        def Theta_Total_local(x_arr, k1, k1r, k2, k2r, k3, k3r, bbv, bbh, f1_val=f1_val):
+            k2r_calc = (k1*k2) / k1r if k1r != 0 else 0.0
+            k3r_calc = (k3*k1**2) / (k1r**2) if k1r != 0 else 0.0
+            A1 = -2*k3 + 2*k3r_calc
+            B1 = (-np.e**((-bbv)*f1_val*x_arr))*k1 - np.e**((1 - bbv)*f1_val*x_arr)*k1r - \
+                 k2/np.e**(bbh*f1_val*x_arr) - np.e**((1 - bbh)*f1_val*x_arr)*k2r_calc - 4*k3r_calc
+            C1 = k1/np.e**(bbv*f1_val*x_arr) + np.e**((1 - bbh)*f1_val*x_arr)*k2r_calc + 2*k3r_calc
+            # guard against negative discriminant
+            disc = B1**2 - (4*A1*C1)
+            disc = np.where(disc < 0, 0.0, disc)
+            theta = (-B1 - np.sqrt(disc)) / (2*A1)
+            return theta, 1 - theta
+
+        # Dispatch based on model type
+        if 'full' in model_type.lower():
+            k1 = _val('k1')
+            k1r = _val('k1r')
+            k2 = _val('k2')
+            k2r = _val('k2r')
+            k3 = _val('k3')
+            k3r = _val('k3r')
+            bbv = _val('bbv')
+            bbh = _val('bbh')
+            theta, _ = Theta_Total_local(x, k1, k1r, k2, k2r, k3, k3r, bbv, bbh, f1_val)
+            return theta
+        elif 'simplified' in model_type.lower():
+            k1 = _val('k1')
+            k1r = _val('k1r')
+            k2 = _val('k2')
+            k2r = _val('k2r')
+            bbv = _val('bbv')
+            bbh = _val('bbh')
+            theta, _ = Theta_VH_local(x, k1, k1r, k2, k2r, bbv, bbh, f1_val)
+            return theta
+        else:
+            raise ValueError('Theta available only for full or simplified model fits')
 
     def compute_tafel_slope(self, x=None, use_fitted=True):
         """Compute local Tafel slope in mV/decade.

@@ -56,3 +56,7 @@ def fit_summary(request):
         n_points = res.get('n_points', 0)
         return render(request, 'fit_summary.html', {'stats': stats, 'parameters': params, 'n_points': n_points})
     return render(request, 'fit_summary.html', {'stats': {}, 'parameters': {}, 'n_points': 0})
+
+
+def docs(request):
+    return render(request, 'her/documentation.html')

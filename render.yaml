@@ -5,8 +5,14 @@ services:
     region: oregon
     plan: free
     branch: main
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: gunicorn theher_django.wsgi --log-file -
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
+      - key: DJANGO_SECRET_KEY
+        value: ''
+        sync: false
+      - key: DATABASE_URL
+        value: ''
+        sync: false

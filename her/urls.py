@@ -10,4 +10,5 @@ urlpatterns = [
     path('plot_theta', views.plot_theta, name='plot_theta'),
     path('plot_tafel', views.plot_tafel, name='plot_tafel'),
     path('fit_summary', views.fit_summary, name='fit_summary'),
+    path('docs', views.docs, name='docs'),
 ]

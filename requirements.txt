@@ -9,3 +9,44 @@ Flask>=3.0.0
 gunicorn>=21.2.0
 python-dotenv>=1.0.0
 pytest>=7.0.0
+<<<<<<< HEAD
+=======
+=======
+Flask==3.0.0
+gunicorn==21.2.0
+lmfit==1.2.2
+matplotlib==3.8.2
+numpy==1.26.2
+pandas==2.1.4
+python-dotenv==1.0.0
+scipy==1.11.4
+# Core web
+
+```pip-requirements
+# Core web
+
+# Scientific
+django==6.0.1
+gunicorn==21.2.0
+whitenoise==6.5.0
+
+# Scientific
+numpy==1.26.2
+
+django==6.0.1
+gunicorn==21.2.0
+whitenoise==6.5.0
+dj-database-url==1.0.0
+
+# Scientific
+numpy==1.26.2
+pandas==2.1.4
+scipy==1.11.4
+matplotlib==3.8.2
+lmfit==1.2.2
+plotly==5.16.0
+
+# Utilities
+python-dotenv==1.0.0
+psycopg2-binary==2.9.6
+>>>>>>> 877ac061 (Prepare Render deployment: add Procfile, render.yaml, static settings; fix docs and sidebar; update requirements and env sample)

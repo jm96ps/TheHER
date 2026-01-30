@@ -68,7 +68,13 @@ def _save_uploaded_file(file_storage):
 def build_fitter_from_request(form, files):
     # Save uploaded file (if any) and assemble kwargs for hydrogen_fitting
     uploaded = files.get('datafile') if files is not None else None
-    saved_path = _save_uploaded_file(uploaded) if uploaded and getattr(uploaded, 'filename', None) else None
+    # Accept any file-like uploaded object (Flask FileStorage, Django UploadedFile, or plain file)
+    saved_path = _save_uploaded_file(uploaded) if uploaded else None
+    # Debug: log upload info for Django/Flask environments
+    try:
+        print(f"[fitting_service] uploaded object: {type(uploaded)} filename={getattr(uploaded, 'name', getattr(uploaded, 'filename', None))} saved_path={saved_path}")
+    except Exception:
+        pass
     # allow file_path override
     if (not saved_path) and form.get('file_path'):
         fp = os.path.abspath(form.get('file_path'))
@@ -98,8 +104,57 @@ def build_fitter_from_request(form, files):
         bbv_initial=_to_float(form.get('bbv'), 0.5),
         bbh_initial=_to_float(form.get('bbh'), 0.5),
         vary_bbv=(form.get('vary_bbv', 'true').lower() != 'false'),
-        vary_bbh=(form.get('vary_bbh', 'true').lower() != 'false')
+        vary_bbh=(form.get('vary_bbh', 'true').lower() != 'false'),
+        bbv_min=_to_float(form.get('bbv_min'), 0.0),
+        bbv_max=_to_float(form.get('bbv_max'), 1.0),
+        bbh_min=_to_float(form.get('bbh_min'), 0.0),
+        bbh_max=_to_float(form.get('bbh_max'), 1.0)
     )
+
+    # Advanced parameter controls for rate constants
+    params.update({
+        'k1_initial': _to_float(form.get('k1_init'), None),
+        'k1_min': _to_float(form.get('k1_min'), 1e-20),
+        'k1_max': _to_float(form.get('k1_max'), 1e-2),
+        'vary_k1': (form.get('vary_k1', 'true').lower() != 'false'),
+
+        'k1r_initial': _to_float(form.get('k1r_init'), None),
+        'k1r_min': _to_float(form.get('k1r_min'), 1e-20),
+        'k1r_max': _to_float(form.get('k1r_max'), 1e-2),
+        'vary_k1r': (form.get('vary_k1r', 'true').lower() != 'false'),
+
+        'k2_initial': _to_float(form.get('k2_init'), None),
+        'k2_min': _to_float(form.get('k2_min'), 1e-20),
+        'k2_max': _to_float(form.get('k2_max'), 1e-2),
+        'vary_k2': (form.get('vary_k2', 'true').lower() != 'false'),
+
+        'k2r_initial': _to_float(form.get('k2r_init'), None),
+        'k2r_min': _to_float(form.get('k2r_min'), 1e-20),
+        'k2r_max': _to_float(form.get('k2r_max'), 1e-2),
+        'vary_k2r': (form.get('vary_k2r', 'true').lower() != 'false'),
+
+        'k3_initial': _to_float(form.get('k3_init'), None),
+        'k3_min': _to_float(form.get('k3_min'), 1e-20),
+        'k3_max': _to_float(form.get('k3_max'), 1e-2),
+        'vary_k3': (form.get('vary_k3', 'true').lower() != 'false'),
+    })
+
+    # Normalize delimiter: user-facing value may include escaped sequences like '\t'
+    try:
+        d = params.get('delimiter')
+        if isinstance(d, str):
+            if d == '\\t' or d == r'\\t' or d == r'\\t' or d == '\t':
+                params['delimiter'] = '\t'
+            elif d == 'space' or d == ' ':
+                params['delimiter'] = ' '
+            elif d == 'comma' or d == ',':
+                params['delimiter'] = ','
+            elif d == 'semicolon' or d == ';':
+                params['delimiter'] = ';'
+    except Exception:
+        pass
+
+    print(f"[fitting_service] using file_path={params.get('file_path')} delimiter={params.get('delimiter')}")
 
     fitter = hydrogen_fitting(**params)
     return fitter
@@ -167,42 +222,13 @@ def render_plot(form, files):
 
 
 def _compute_theta(fitter, x=None):
+    # Prefer using the model's compute_theta() which supports both full and simplified
     if getattr(fitter, 'result_model', None) is None:
         raise ValueError('No fit available to compute theta')
-    params = fitter.result_model.params
-    model_type = getattr(fitter, 'model_type', '')
-    f1_val = getattr(fitter, 'f1', 38.92)
-    if x is None:
-        x = np.array(fitter.potential)
-    x = np.asarray(x, dtype=float)
-
-    if 'Hydrogen_Full' not in model_type and 'full' not in model_type.lower():
-        raise ValueError('Theta (coverage) only available for full model fits')
-
-    def val(name):
-        p = params.get(name)
-        return float(p.value) if p is not None else 0.0
-
-    k1 = val('k1')
-    k1r = val('k1r')
-    k2 = val('k2')
-    k2r = val('k2r')
-    k3 = val('k3')
-    k3r = val('k3r')
-    bbv = val('bbv')
-    bbh = val('bbh')
-
-    k2r_calc = (k1 * k2) / k1r if k1r != 0 else 0.0
-    k3r_calc = (k3 * k1 ** 2) / (k1r ** 2) if k1r != 0 else 0.0
-    A1 = -2 * k3 + 2 * k3r_calc
-    B1 = (-np.e ** ((-bbv) * f1_val * x)) * k1 - np.e ** ((1 - bbv) * f1_val * x) * k1r - k2 / np.e ** (bbh * f1_val * x) - np.e ** ((1 - bbh) * f1_val * x) * k2r_calc - 4 * k3r_calc
-    C1 = k1 / np.e ** (bbv * f1_val * x) + np.e ** ((1 - bbh) * f1_val * x) * k2r_calc + 2 * k3r_calc
-    disc = B1 ** 2 - (4 * A1 * C1)
-    disc = np.where(disc < 0, 0.0, disc)
-    denom = 2 * A1
-    denom = np.where(denom == 0, np.nan, denom)
-    theta = (-B1 - np.sqrt(disc)) / denom
-    return theta
+    try:
+        return fitter.compute_theta(x=x)
+    except Exception as e:
+        raise
 
 
 def render_theta_plot(form, files):
