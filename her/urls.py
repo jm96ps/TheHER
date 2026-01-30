@@ -9,6 +9,8 @@ urlpatterns = [
     path('plot', views.plot, name='plot'),
     path('plot_theta', views.plot_theta, name='plot_theta'),
     path('plot_tafel', views.plot_tafel, name='plot_tafel'),
+    path('export_plots_zip', views.export_plots_zip, name='export_plots_zip'),
     path('fit_summary', views.fit_summary, name='fit_summary'),
     path('docs', views.docs, name='docs'),
+    path('about', views.about, name='about'),
 ]

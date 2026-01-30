@@ -1,0 +1,18 @@
+body { background: #f8f9fa; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+aside { position: sticky; top: 1rem; }
+.main-card { margin-bottom: 1rem; }
+
+/* Card tweaks */
+.card .card-body { padding: 0.9rem; }
+.card-title { font-size: 0.95rem; font-weight: 600; }
+
+/* Parameter cards */
+.param-card { background:#fff; border:1px solid #e9ecef; padding:0.5rem; margin-bottom:0.5rem; border-radius:4px; }
+.param-card strong { display:block; font-size:0.9rem; }
+.param-card .muted { color:#6c757d; font-size:0.85rem; }
+
+/* Thumbnails */
+.img-thumbnail { width:120px; height:80px; object-fit:cover; }
+
+/* Small helper text */
+.helper { font-size:0.85rem; color:#495057; }

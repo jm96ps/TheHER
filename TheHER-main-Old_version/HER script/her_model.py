@@ -113,14 +113,26 @@ def Theta_Total(x, k1, k1r, k2, k2r, k3, k3r, bbv, bbh, f1_val=38.92):
     tuple
         (theta, 1-theta) - coverage of H_ads and empty sites
     """
-    k2r_calc = (k1*k2) / k1r
-    k3r_calc = (k3*k1**2) / k1r**2
-    A1 = -2*k3 + 2*k3r_calc
-    B1 = (-np.e**((-bbv)*f1_val*x))*k1 - np.e**((1 - bbv)*f1_val*x)*k1r - \
-         k2/np.e**(bbh*f1_val*x) - np.e**((1 - bbh)*f1_val*x)*k2r_calc - 4*k3r_calc
-    C1 = k1/np.e**(bbv*f1_val*x) + np.e**((1 - bbh)*f1_val*x)*k2r_calc + 2*k3r_calc
-    theta = (-B1 - np.sqrt(B1**2 - (4*A1*C1))) / (2*A1)
-    return theta, 1 - theta
+        # safe computations: avoid negative discriminant and division by near-zero A1
+        k2r_calc = (k1 * k2) / k1r if k1r != 0 else 0.0
+        k3r_calc = (k3 * k1**2) / (k1r**2) if k1r != 0 else 0.0
+        A1 = -2 * k3 + 2 * k3r_calc
+        B1 = (-np.e**((-bbv) * f1_val * x)) * k1 - np.e**((1 - bbv) * f1_val * x) * k1r - \
+             k2/np.e**(bbh * f1_val * x) - np.e**((1 - bbh) * f1_val * x) * k2r_calc - 4 * k3r_calc
+        C1 = k1/np.e**(bbv * f1_val * x) + np.e**((1 - bbh) * f1_val * x) * k2r_calc + 2 * k3r_calc
+
+        # discriminant (guard negative values introduced by numerical noise)
+        disc = B1**2 - (4 * A1 * C1)
+        disc = np.where(disc < 0, 0.0, disc)
+
+        denom = 2 * A1
+        # avoid division by zero: where denom is ~0, set theta to nan (upstream code should handle)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            theta = np.where(np.abs(denom) < 1e-30, np.nan, (-B1 - np.sqrt(disc)) / denom)
+
+        # clip to physically-meaningful coverage range [0,1]
+        theta = np.clip(theta, 0.0, 1.0)
+        return theta, 1 - theta
 
 
 def rows_generator(df, start_idx=55, window_size=10):
@@ -205,6 +217,16 @@ def process_electrochemical_data(current_raw, potential_raw, area_electrode,
     tuple
         (current_density, corrected_potential) - processed data
     """
-    current = current_raw / area_electrode  # Normalize to current density
-    potential = potential_raw - (current_raw * ohmic_drop) + ref_correction  # Apply corrections
+    if area_electrode is None:
+        raise ValueError('Electrode area is required to compute current density')
+    try:
+        area = float(area_electrode)
+        if area == 0:
+            raise ValueError('Electrode area must be non-zero')
+    except Exception:
+        raise ValueError('Electrode area must be numeric')
+
+    current_density = current_raw / area  # Normalize to current density (A/cm²)
+    # Apply ohmic drop and reference correction to potential
+    potential = potential_raw - (current_raw * ohmic_drop) + ref_correction
     return current, potential
