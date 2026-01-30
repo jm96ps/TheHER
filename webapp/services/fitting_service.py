@@ -15,12 +15,54 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 def _save_uploaded_file(file_storage):
     if not file_storage:
         return None
-    filename = secure_filename(getattr(file_storage, 'filename', ''))
+    # Support both Flask's FileStorage and Django's UploadedFile
+    filename = getattr(file_storage, 'filename', None) or getattr(file_storage, 'name', None) or ''
+    filename = secure_filename(filename)
     if not filename:
         return None
     path = os.path.join(UPLOAD_DIR, filename)
-    file_storage.save(path)
-    return path
+
+    # If the object supports a .save(path) method (Flask FileStorage), use it.
+    try:
+        save_fn = getattr(file_storage, 'save', None)
+        if callable(save_fn):
+            # Some frameworks accept a path, others expect a file-like object.
+            try:
+                file_storage.save(path)
+                return path
+            except TypeError:
+                # Maybe expects a file object
+                with open(path, 'wb') as f:
+                    save_fn(f)
+                return path
+    except Exception:
+        pass
+
+    # Fallback: write bytes from .read() or iterate .chunks() (Django UploadedFile)
+    try:
+        # Django UploadedFile provides chunks() for potentially large uploads
+        if hasattr(file_storage, 'chunks'):
+            with open(path, 'wb') as destination:
+                for chunk in file_storage.chunks():
+                    destination.write(chunk)
+            return path
+        # file-like object with read()
+        data = None
+        if hasattr(file_storage, 'read'):
+            data = file_storage.read()
+        elif isinstance(file_storage, (bytes, bytearray)):
+            data = file_storage
+        if data is not None:
+            # If data is text, encode to bytes
+            if isinstance(data, str):
+                data = data.encode('utf-8')
+            with open(path, 'wb') as f:
+                f.write(data)
+            return path
+    except Exception:
+        pass
+
+    return None
 
 
 def build_fitter_from_request(form, files):
