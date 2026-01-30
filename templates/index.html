@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!doctype html>
 <html>
   <head>
@@ -78,4 +79,194 @@
       });
     </script>
   </body>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HER Analysis - Hydrogen Evolution Reaction Fitting</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔬 HER Analysis Platform</h1>
+            <p class="subtitle">Hydrogen Evolution Reaction Electrochemical Data Fitting</p>
+        </header>
+
+        <div class="main-content">
+            <section class="card">
+                <h2>📁 Step 1: Upload Data</h2>
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="dataFile">Select LSV Data File (.txt, .csv):</label>
+                        <input type="file" id="dataFile" name="file" accept=".txt,.csv" required>
+                        <small>Supports any separator (comma, tab, space, semicolon)</small>
+                    </div>
+                    
+                    <h3>📊 Column Configuration</h3>
+                    <div class="parameters-grid">
+                        <div class="form-group">
+                            <label for="currentColumn">Current Column (0-based index):</label>
+                            <input type="number" id="currentColumn" name="current_column" value="0" min="0" required>
+                            <small>First column = 0, Second = 1, etc.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="potentialColumn">Potential Column (0-based index):</label>
+                            <input type="number" id="potentialColumn" name="potential_column" value="1" min="0" required>
+                            <small>First column = 0, Second = 1, etc.</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="skipRows">Rows to Skip (header lines):</label>
+                            <input type="number" id="skipRows" name="skip_rows" value="1" min="0" required>
+                            <small>Number of header rows to skip</small>
+                        </div>
+                    </div>
+                    
+                    <h3>⚙️ Experimental Parameters</h3>
+                    <div class="parameters-grid">
+                        <div class="form-group">
+                            <label for="areaElectrode">Electrode Area (cm²):</label>
+                            <input type="number" id="areaElectrode" name="area_electrode" value="0.5" step="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="ohmicDrop">Ohmic Drop (Ω):</label>
+                            <input type="number" id="ohmicDrop" name="ohmic_drop" value="6.43" step="0.01" required>
+                            <small>raw value, without area correction</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pH">pH:</label>
+                            <input type="number" id="pH" name="pH" value="7" step="0.1" required>
+                            <small>pH of solution</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="refElectrode">Reference Electrode Potential (V):</label>
+                            <input type="number" id="refElectrode" name="ref_electrode" value="0.098" step="0.001" required>
+                            <small>Potential of reference electrode used</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="temperature">Temperature (K):</label>
+                            <input type="number" id="temperature" name="temperature" value="298.15" step="0.01" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="gasConstant">Gas Constant (J/(mol·K)):</label>
+                            <input type="number" id="gasConstant" name="gas_constant" value="8.314" step="0.001" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Upload & Process Data</button>
+                </form>
+                <div id="uploadStatus" class="status-message"></div>
+                
+                <div id="rawPreview" class="data-preview" style="display:none;">
+                    <h3>📄 Raw File Preview (First 10 Lines)</h3>
+                    <div class="raw-lines-container">
+                        <table id="rawLinesTable">
+                            <thead><tr><th>Line</th><th>Content</th></tr></thead>
+                            <tbody id="rawLinesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div id="dataPreview" class="data-preview" style="display:none;">
+                    <h3>📋 Processed Data Preview (First 5 Points)</h3>
+                    <p><strong>After applying corrections:</strong></p>
+                    <table id="previewTable">
+                        <thead><tr><th>Current (A/cm²)</th><th>Potential (V vs RHE)</th></tr></thead>
+                        <tbody id="previewBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="card" id="fittingSection" style="display: none;">
+                <h2>⚙️ Step 2: Configure Fitting</h2>
+                <div class="form-group">
+                    <label>Model Type:</label>
+                    <select id="modelType">
+                        <option value="simplified">Simplified (2-step: Volmer-Heyrovsky)</option>
+                        <option value="full">Full (3-step: Volmer-Heyrovsky-Tafel)</option>
+                    </select>
+                </div>
+                <div class="parameters-grid">
+                    <div class="form-group">
+                        <label for="bbvInitial">Initial bbv (Volmer β):</label>
+                        <input type="number" id="bbvInitial" value="0.5" min="0" max="1" step="0.01">
+                        <label style="display: inline-block; margin-top: 5px;">
+                            <input type="checkbox" id="varyBbv" checked> Allow to vary during fitting
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="bbhInitial">Initial bbh (Heyrovsky β):</label>
+                        <input type="number" id="bbhInitial" value="0.5" min="0" max="1" step="0.01">
+                        <label style="display: inline-block; margin-top: 5px;">
+                            <input type="checkbox" id="varyBbh" checked> Allow to vary during fitting
+                        </label>
+                    </div>
+                </div>
+                <button id="fitBtn" class="btn btn-primary">Fit Data</button>
+                <div id="fitStatus" class="status-message"></div>
+            </section>
+
+            <section class="card" id="resultsSection" style="display: none;">
+                <h2>📊 Results</h2>
+                <div class="results-container">
+                    <div class="parameters-display">
+                        <h3>Fitted Parameters</h3>
+                        <table id="paramsTable">
+                            <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+                            <tbody id="paramsBody"></tbody>
+                        </table>
+                        <h3>Statistics</h3>
+                        <div id="statsDisplay"></div>
+                    </div>
+                    <div class="interactive-controls">
+                        <h3>🎛️ Interactive Parameters</h3>
+                        <div id="sliderControls"></div>
+                        <button id="updateBtn" class="btn btn-secondary">Update Plot</button>
+                    </div>
+                    <div class="export-controls">
+                        <h3>📥 Export Results</h3>
+                        <button id="exportBtn" class="btn btn-primary">Download All Results (.zip)</button>
+                        <small>Includes: parameters, statistics, curves (current-potential, surface coverage, Tafel slopes)</small>
+                    </div>
+                </div>
+                <div class="plots-grid">
+                    <div id="plot1" class="plot-container"></div>
+                    <div id="plot2" class="plot-container"></div>
+                    <div id="plot3" class="plot-container"></div>
+                </div>
+            </section>
+        </div>
+        <footer>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>HER Analysis Platform</h4>
+                    <p><a href="https://github.com/jm96ps/TheHER" target="_blank">🔗 GitHub Repository</a></p>
+                </div>
+                <div class="footer-section">
+                    <h4>Author</h4>
+                    <p><strong>James Silva</strong>, PhD Candidate</p>
+                    <p>IQSC-USP (Institute of Chemistry of São Carlos - University of São Paulo)</p>
+                    <p>📧 <a href="mailto:jamesmario@usp.br">jamesmario@usp.br</a></p>
+                </div>
+                <div class="footer-section">
+                    <h4>Support</h4>
+                    <p><a href="https://buymeacoffee.com/jm96ps" target="_blank" class="coffee-btn">☕ Buy me a coffee</a></p>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+>>>>>>> 5602c2a428d223259f21bca9ff03240ae08bfe2f
 </html>
