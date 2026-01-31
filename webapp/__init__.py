@@ -1,3 +1,8 @@
-from .app import create_app
+"""
+Webapp package initializer.
 
-__all__ = ["create_app"]
+This package previously exposed a Flask `create_app` but for the current
+Django-based project this import is removed to avoid import-time errors.
+"""
+
+__all__ = []
