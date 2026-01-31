@@ -29,20 +29,23 @@
     </div>
   </div>
 </nav>
-<div class="container-fluid mt-3">
-  <div class="row">
-    <aside class="col-md-2">
-      <div class="list-group">
-        <a href="#" class="list-group-item list-group-item-action active">Overview</a>
-        <!-- 'Run Fit' removed from side menu per request -->
-        <a href="/docs" class="list-group-item list-group-item-action">Documentation</a>
-        <a href="/about" class="list-group-item list-group-item-action">About author</a>
+<div class="container-fluid">
+  <!-- Author banner -->
+  <div class="alert alert-light border-0 shadow-sm mt-3 mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <h5 class="mb-1"><i class="bi bi-person-circle"></i> TheHER - Hydrogen Evolution Reaction Analysis</h5>
+        <p class="mb-0 small">Developed by <strong>James Silva</strong>, PhD Candidate at IQSC-USP | <a href="mailto:jamesmario@usp.br" class="text-white text-decoration-underline">jamesmario@usp.br</a></p>
       </div>
-    </aside>
-    <main class="col-md-10">
-      {% block content %}{% endblock %}
-    </main>
+      <div class="col-md-4 text-end">
+        <a href="/docs" class="btn btn-light btn-sm me-2"><i class="bi bi-book"></i> Documentation</a>
+        <a href="/about" class="btn btn-outline-light btn-sm"><i class="bi bi-info-circle"></i> About</a>
+      </div>
+    </div>
   </div>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- KaTeX and auto-render with mhchem extension -->

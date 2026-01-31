@@ -9,12 +9,12 @@
   img.img-fluid { object-fit:contain; }
 </style>
 
-<div class="container mt-3">
-  <div class="card p-3">
-    <h3>TheHER — HER Analysis</h3>
-    <p class="small text-muted">Upload LSV/LSV-like data, set columns and experimental parameters, then run fits.</p>
+<div class="container-fluid px-4">
+  <div class="card p-3 shadow-sm">
+    <h4 class="mb-2">Analysis Workspace</h4>
+    <p class="small text-muted mb-3">Upload LSV data, configure parameters, and run fitting analysis</p>
 
-    <div class="row mt-3">
+    <div class="row g-3">
       <div class="col-lg-5">
         <form id="fitForm" enctype="multipart/form-data">
           {% csrf_token %}
