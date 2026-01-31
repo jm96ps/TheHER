@@ -1,12 +1,23 @@
 import os
 import io
+import re
 import traceback
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from werkzeug.utils import secure_filename
 from ..models.hydrogen import hydrogen_fitting
+
+def secure_filename(filename):
+    """Sanitize filename to prevent directory traversal attacks."""
+    # Remove path components
+    filename = os.path.basename(filename)
+    # Remove any non-alphanumeric chars except dot, dash, underscore
+    filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
+    # Prevent hidden files
+    if filename.startswith('.'):
+        filename = '_' + filename
+    return filename or 'unnamed'
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), '..', 'uploads')
 os.makedirs(UPLOAD_DIR, exist_ok=True)

@@ -8,7 +8,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security and debug come from environment in production
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-for-local')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if not DEBUG else ['*']
+
+# ALLOWED_HOSTS: production domains + wildcard for dev
+ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
+if ALLOWED_HOSTS_ENV:
+    ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['theher.onrender.com', 'localhost', '127.0.0.1']
+    if DEBUG:
+        ALLOWED_HOSTS.append('*')
 
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
