@@ -28,7 +28,16 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
 ]
+
+# CSRF settings for production
+CSRF_TRUSTED_ORIGINS = [
+    'https://theher.onrender.com',
+]
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.append('http://localhost:8000')
+    CSRF_TRUSTED_ORIGINS.append('http://127.0.0.1:8000')
 
 ROOT_URLCONF = 'theher_django.urls'
 
