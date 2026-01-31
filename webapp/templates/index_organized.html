@@ -149,7 +149,7 @@
           <div class="card p-2 mb-2">
             <strong>Fit Plot</strong>
             <div class="mt-2">
-              <img id="plot" src="" alt="fit plot" class="img-fluid" />
+              <img id="plot" alt="fit plot" class="img-fluid" style="display:none" />
             </div>
           </div>
 
@@ -157,13 +157,13 @@
             <div class="col-md-6">
               <div class="card p-2 mb-2 h-100">
                 <strong>Theta</strong>
-                <div class="mt-2"><img id="thetaThumb" src="" alt="theta" class="img-fluid" /></div>
+                <div class="mt-2"><img id="thetaThumb" alt="theta" class="img-fluid" style="display:none" /></div>
               </div>
             </div>
             <div class="col-md-6">
               <div class="card p-2 mb-2 h-100">
                 <strong>Tafel</strong>
-                <div class="mt-2"><img id="tafelThumb" src="" alt="tafel" class="img-fluid" /></div>
+                <div class="mt-2"><img id="tafelThumb" alt="tafel" class="img-fluid" style="display:none" /></div>
               </div>
             </div>
           </div>
@@ -234,9 +234,9 @@
     out.textContent = 'Running fit...'
     if(fittedBody) fittedBody.innerHTML = ''
     if(statsBody) statsBody.innerHTML = ''
-    img.src = ''
-    thetaThumb.src = ''
-    tafelThumb.src = ''
+    img.style.display = 'none'
+    thetaThumb.style.display = 'none'
+    tafelThumb.style.display = 'none'
     try {
       const fd = new FormData(form)
       const fitRes = await fetch('/fit', { method: 'POST', body: fd })
@@ -315,36 +315,12 @@
           }
         }catch(err){ alert('Export failed: '+(err.message||err)) }
       }
-      if(downloadAllBtn) downloadAllBtn.onclick = async ()=> {
-        try{
-          const fdPlot = new FormData(form); fdPlot.append('as','json')
-          const fdTheta = new FormData(form); fdTheta.append('as','json')
-          const fdTafel = new FormData(form); fdTafel.append('as','json')
-          const [plotRes, thetaRes, tafelRes] = await Promise.all([
-            fetch('/plot',{method:'POST', body: fdPlot}),
-            fetch('/plot_theta',{method:'POST', body: fdTheta}),
-            fetch('/plot_tafel',{method:'POST', body: fdTafel})
-          ])
-          const plotData = plotRes.ok ? await plotRes.json() : null
-          const thetaData = thetaRes.ok ? await thetaRes.json() : null
-          const tafelData = tafelRes.ok ? await tafelRes.json() : null
-
-          // prepare a single combined JSON as before but also offer CSVs
-          const out = {parameters: fitJson.parameters, stats: fitJson.stats, plot: plotData, theta: thetaData, tafel: tafelData}
-          const blob = new Blob([JSON.stringify(out,null,2)], {type:'application/json'})
-          const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='fit_all_export.json'; a.click()
-          // also trigger CSV downloads
-          if(plotData){ let csv = 'Potential,Fitted_current\n' + plotData.x.map((v,i)=>`${v},${plotData.y[i]}`).join('\n'); const b=new Blob([csv],{type:'text/csv'}); const a2=document.createElement('a'); a2.href=URL.createObjectURL(b); a2.download='fit_plot.csv'; a2.click() }
-          if(thetaData){ let csv = 'Potential,Hydrogen_Coverage\n' + thetaData.x.map((v,i)=>`${v},${thetaData.y[i]}`).join('\n'); const b=new Blob([csv],{type:'text/csv'}); const a3=document.createElement('a'); a3.href=URL.createObjectURL(b); a3.download='theta.csv'; a3.click() }
-          if(tafelData){ let csv = 'Average_Potential,Tafel_Slope\n' + tafelData.x.map((v,i)=>`${v},${tafelData.slope[i]}`).join('\n'); const b=new Blob([csv],{type:'text/csv'}); const a4=document.createElement('a'); a4.href=URL.createObjectURL(b); a4.download='tafel.csv'; a4.click() }
-        }catch(err){ alert('Export failed: '+(err.message||err)) }
-      }
       const plotRes = await fetch('/plot', { method: 'POST', body: fd })
-      if (plotRes.ok) img.src = URL.createObjectURL(await plotRes.blob())
+      if (plotRes.ok) { img.src = URL.createObjectURL(await plotRes.blob()); img.style.display = 'block' }
       const thetaRes = await fetch('/plot_theta', { method: 'POST', body: fd })
-      if (thetaRes.ok) thetaThumb.src = URL.createObjectURL(await thetaRes.blob())
+      if (thetaRes.ok) { thetaThumb.src = URL.createObjectURL(await thetaRes.blob()); thetaThumb.style.display = 'block' }
       const tafelRes = await fetch('/plot_tafel', { method: 'POST', body: fd })
-      if (tafelRes.ok) tafelThumb.src = URL.createObjectURL(await tafelRes.blob())
+      if (tafelRes.ok) { tafelThumb.src = URL.createObjectURL(await tafelRes.blob()); tafelThumb.style.display = 'block' }
       summaryBtn.onclick = ()=> window.open('/fit_summary','_blank')
       // legacy raw JSON download removed; use Export buttons
     } catch(err){ out.textContent = 'Error: '+(err.message||err) }
