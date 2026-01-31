@@ -9,14 +9,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'dev-secret-for-local')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('1', 'true', 'yes')
 
-# ALLOWED_HOSTS: production domains + wildcard for dev
+# ALLOWED_HOSTS: Always include Render domain + localhost for dev
+ALLOWED_HOSTS = ['theher.onrender.com', 'localhost', '127.0.0.1']
+# Add custom hosts from env if provided
 ALLOWED_HOSTS_ENV = os.environ.get('DJANGO_ALLOWED_HOSTS', '')
 if ALLOWED_HOSTS_ENV:
-    ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS_ENV.split(',') if h.strip()]
-else:
-    ALLOWED_HOSTS = ['theher.onrender.com', 'localhost', '127.0.0.1']
-    if DEBUG:
-        ALLOWED_HOSTS.append('*')
+    ALLOWED_HOSTS.extend([h.strip() for h in ALLOWED_HOSTS_ENV.split(',') if h.strip()])
+# In debug mode, also accept all hosts
+if DEBUG:
+    ALLOWED_HOSTS.append('*')
 
 INSTALLED_APPS = [
     'django.contrib.staticfiles',
