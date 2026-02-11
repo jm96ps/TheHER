@@ -1,51 +1,129 @@
-# TheHER — HER fitting web application
+# HER Fitting Analysis
 
-Minimal README: how to run and where to find features.
+**Web app, Script, and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
 
-Requirements
-- Python 3.10+ (recommended)
-- Create a virtual environment and install dependencies:
+[![DOI](https://zenodo.org/badge/1124731941.svg)](https://doi.org/10.5281/zenodo.18099697)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+
+## Key Parameters
+
+### Rate Constants
+| Parameter | Description | Typical Range |
+|-----------|-------------|---------------|
+| $k_1$ (k1) | Forward rate const. (Volmer step) | $10^{-12}\ to\ 0.01\ mol\ cm^{-2}\ s^{-1}$ |
+| $k_{-1}$(k1r) | Reverse rate const. (Volver step) | $10^{-12}\ to\ 0.01\ mol\ cm^{-2}\ s^{-1}$ |
+| $k_2$(k2) | Forward rate const. (Heyrovsky step ) | $10^{-12}\ to\ 0.01\ mol\ cm^{-2}\ s^{-1}$ |
+| $k_{-2}$(k2r) | Reverse rate const. (Heyrovsky step) | Computed from $k_{1},\ k_{-1},\ k_{2}$ |
+
+### Symmetry Factors
+| Parameter | Description | Range |
+|-----------|-------------|-------|
+| $\beta_v$ (bbv) | Symmetry factor (Volmer) | 0.0 - 1.0 |
+| $\beta_h$ (bbh) | Symmetry factor (Heyrovsky) | 0.0 - 1.0 |
+
+### Physical Constants
+| Constant | Value | Unit |
+|----------|-------|------|
+| F (Faraday) | 96485.3 | C/mol |
+| R | 8.314 | J/(mol·K) |
+| T | 298.15 | K |
+| $f1=\frac{F}{RT}$ | ~38.92 | 1/V (at 298K) |
+
+## HER Models
+```math
+\ce{2H2O + 2e- <-->H2 + OH-}
+```
+### Simplified Model (2-step)
+Volmer step
+```math
+\ce{H2O + e- + M <-->[\overrightarrow{k}_1][\overrightarrow{k}_{-1}] MH + OH-}
+```
+Heyrovsky step
+```math
+\ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overrightarrow{k}_{-2}] H2 + OH-}           (step 2, Heyrovsky)
+```
+Tafel step (Full Model)
+```math
+\ce{2MH<-->[{k}_3][{k}_{-3}] H2 +2M}           (step 2, Heyrovsky)
+```
+## Customization
+
+### Change Model Type
+Edit in "Fit Data with Simplified or Full Model" cell:
+```python
+model_choice = 'simplified'  # or 'full'
 ```
 
-Run (development)
-
-```powershell
-python -m webapp.app
-# or run the Django server:
-# python manage.py runserver
+### Adjust Slider Ranges
+Modify the fitting parameter constraints in the model setup:
+```python
+k1=dict(value=initial_value, max=1e-2, min=1e-20)
 ```
 
-Open `http://127.0.0.1:8000/` (or the address shown) and use the dashboard:
-- Run Fit: upload LSV-like data, select columns and separator
-- Experimental Parameters: set `E_ref`, `pH`, electrode area `A_e`, and ohmic drop ΔR
-- Fitting Parameters: choose `simplified` or `full`, set `β_v`, `β_h`, and fitting method
-
-Documentation page
-- A concise Documentation page is available in the site menu (Docs)
-
-Development notes
-- Core model: `webapp/models/hydrogen.py`
-- Service layer: `webapp/services/fitting_service.py`
-- Django views: `her/views.py` (reuse service functions)
-- Templates: `webapp/templates/` and `her/templates/` (dashboard)
-
-Testing
-- Run unit tests with `pytest` if installed:
-
-```powershell
-pytest -q
+### Modify Data Processing
+Edit electrode parameters:
+```python
+area_electrode = 0.5  # Your electrode area (cm²)
+ohmic_drop = 6.43     # Your ohmic drop (ohm)
+ref_correction = 0.924 # Your reference potential (V) (mercury oxide reference electrode in 1 NaOH (pH=14))
 ```
 
-License
-- MIT (see `LICENSE`)
+## Dependencies
 
-Contact
-- For issues or questions open an issue or email: jamesmario@usp.br
+See `requirements.txt` for all packages. Main dependencies:
+
+- **numpy** - Numerical computations
+- **pandas** - Data manipulation
+- **scipy** - Statistical analysis
+- **lmfit** - Non-linear curve fitting
+- **plotly** - Interactive visualizations
+- **ipywidgets** - Jupyter interactive widgets
+- **matplotlib** - Plotting backend
+
+## Contributing
+
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Commit changes with clear messages
+4. Push to the branch
+5. Open a Pull Request
+
+## References
+
+- Lasia, Andrzej. “Mechanism and Kinetics of the Hydrogen Evolution Reaction.” International Journal of Hydrogen Energy 44, no. 36 (2019): 19484–518. [10.1016/j.ijhydene.2019.05.183](10.1016/j.ijhydene.2019.05.183)
+
+- Onno van der Heijden, Sunghak Park, Rafaël E. Vos, Jordy J. J. Eggebeen, and Marc T. M. Koper. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” ACS Energy Letters, American Chemical Society, April 1, 2024, 1871–79. [10.1021/acsenergylett.4c00266](10.1021/acsenergylett.4c00266)
+
+
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Citation
+
+If you use this tool in your research, please cite:
+
+```bibtex
+@software{TheHER,
+  author = {James Silva},
+  title = {*Script and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.},
+  year = {2026},
+  url = {https://github.com/jm96ps/TheHER}
+}
+```
+
+## Support
+Brazil pays poorly phD candidates.\
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/jm96ps)
+
+
+For issues, questions, or suggestions:
+- Open an [Issue](https://github.com/jm96ps/TheHER/issues)
+- Contact: jamesmario@usp.br
 
 ---
 
