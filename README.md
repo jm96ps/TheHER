@@ -1,4 +1,10 @@
 # HER Fitting Analysis
+**Web app, Script, and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
+
+[![DOI](https://zenodo.org/badge/1124731941.svg)](https://doi.org/10.5281/zenodo.18099697)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Python](https://img.shields.io/badge/python-3.8%2B-blue)
+
 ## 🌐 Live Demo
 
 **Try the web app here:** [https://theher.onrender.com/](https://theher.onrender.com/)
@@ -35,13 +41,6 @@ This project provides an interactive tool for:
 - Reference potential correction
 - Current density normalization
 - Support for LSV (linear sweep voltammetry) data
-
-**Web app, Script, and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
-
-[![DOI](https://zenodo.org/badge/1124731941.svg)](https://doi.org/10.5281/zenodo.18099697)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-
 
 ## Key Parameters
 
