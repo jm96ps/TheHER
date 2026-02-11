@@ -1,4 +1,40 @@
 # HER Fitting Analysis
+## 🌐 Live Demo
+
+**Try the web app here:** [https://theher.onrender.com/](https://theher.onrender.com/)
+
+## Overview
+
+This project provides an interactive tool for:
+- **Fitting** experimental HER data using kinetic models simplified 2-step (Volmer-Heyrovsky) or full 3-step mechanism(Vomer-Heyrovsky-Tafel)
+- **Real-time parameter adjustment** with interactive sliders showing scientific notation
+- **Dynamic visualization** including:
+  - Current vs. potential curves (experimental vs. theoretical)
+  - Surface coverage (θ) analysis
+  - Tafel slope analysis
+  - Current parameter values display
+
+## Features
+
+✨ **Interactive Sliders**
+- Log-scale sliders for rate constants (k1, k1r, k2, k2r, k3, k3r)
+- Linear sliders for symmetry factors (bbv, bbh)
+
+📊 **Four-Panel Analysis Dashboard**
+- Current vs. Potential plot with experimental data overlay
+- Surface coverage (H-adsorbed and empty sites)
+- Tafel slope trends
+- Parameter display box
+
+🔬 **Multiple Model Options**
+- **Simplified Model**: 2-step HER mechanism (Vomer-Heyrovsky)
+- **Full Model**: 3-step HER mechanism with dependent parameter calculation (Volmer-Heyrovsky-Tafel)
+
+⚙️ **Data Processing**
+- Automatic ohmic drop correction
+- Reference potential correction
+- Current density normalization
+- Support for LSV (linear sweep voltammetry) data
 
 **Web app, Script, and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
 
