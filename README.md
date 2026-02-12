@@ -9,6 +9,10 @@
 
 **Try the web app here:** [https://theher.onrender.com/](https://theher.onrender.com/)
 
+## Summary
+
+TheHER is an open-source web app that treats hydrogen evolution reaction (HER) data to extract kinetic information. With a few clicks, it is possible to deliver a bundle of information from the HER measurement, providing a general view of the reaction path. It is accomplished by fitting the polarization curves using the formalism of the well-worn reaction mechanism of HER to get the chemical kinetics constants. To evaluate the quality of fitting, besides the statistical metrics, the polarization fitted curve is printed concurrently with the hydrogen coverage($\theta_{H}$) vs. potential plot, and the Tafel slope vs. potential plot. This simultaneous analysis allows finding the parameters that not only minimize the difference between the data and the model but also find a set of parameters whose values have a physical foundation in terms of $\theta_{H}$ and the Tafel slopes. It aims not only to help expert researchers seeking a deeper analysis of the HER systems, but also to be beneficial in an academic context in electrochemistry or related courses.
+
 ## Overview
 
 This project provides an interactive tool for:
