@@ -1,5 +1,5 @@
 # HER Fitting Analysis
-**Web app, Script, and Interactive Jupyter notebook for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
+**Web app for fitting and analyzing Hydrogen Evolution Reaction (HER) electrochemical data with real-time parameter adjustment and dynamic visualization.**
 
 [![DOI](https://zenodo.org/badge/1124731941.svg)](https://doi.org/10.5281/zenodo.18099697)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -22,15 +22,11 @@ This project provides an interactive tool for:
 
 ## Features
 
-✨ **Interactive Sliders**
-- Log-scale sliders for rate constants (k1, k1r, k2, k2r, k3, k3r)
-- Linear sliders for symmetry factors (bbv, bbh)
-
 📊 **Four-Panel Analysis Dashboard**
 - Current vs. Potential plot with experimental data overlay
 - Surface coverage (H-adsorbed and empty sites)
 - Tafel slope trends
-- Parameter display box
+
 
 🔬 **Multiple Model Options**
 - **Simplified Model**: 2-step HER mechanism (Vomer-Heyrovsky)
