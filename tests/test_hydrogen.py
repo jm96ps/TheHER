@@ -19,7 +19,11 @@ def test_theta_and_tafel():
                          current_col=1, potential_col=2, delimiter='auto', current_units='A',
                          bbv_initial=0.5, bbh_initial=0.5)
     f.fit_data(model_type='full', fitting_method='powell')
-    theta = f.compute_theta()
-    assert theta.shape == np.asarray(f.potential).shape
-    x, slope = f.compute_tafel_slope()
-    assert x.shape == slope.shape
+    theta_H, theta_empty = f.compute_theta()
+    assert theta_H.shape == np.asarray(f.potential).shape
+    assert theta_empty.shape == np.asarray(f.potential).shape
+    np.testing.assert_allclose(theta_H + theta_empty, 1.0, rtol=1e-5)
+    
+    x, slope = f.compute_tafel_slope(window_size=5, method='rolling')
+    assert len(x) == len(slope)
+    assert len(slope) > 0

@@ -3,60 +3,268 @@
 
 {% block content %}
 <style>
-  .param-card { background:#fff; padding:.5rem; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.04); margin-bottom:.5rem }
-  .muted { color:#666; font-size:.9rem }
-  #plot, #thetaThumb, #tafelThumb { width:100%; max-width:100%; height:auto; max-height:640px; background:#fff; border:1px solid #e6e6e6; display:block }
-  img.img-fluid { object-fit:contain; }
+  :root {
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+  body {
+    background-color: #f8fafc;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .app-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+    transition: all 0.2s ease;
+  }
+  .app-card:hover {
+    box-shadow: var(--hover-shadow);
+  }
+  .plot-container {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+  .plot-img {
+    width: 100%;
+    height: auto;
+    max-height: 380px;
+    object-fit: contain;
+    border-radius: 8px;
+    display: none;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .plot-img:hover {
+    transform: scale(1.01);
+  }
+  .plot-placeholder {
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border: 2px dashed #cbd5e1;
+    border-radius: 8px;
+    color: #64748b;
+  }
+  .stat-badge {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-align: center;
+  }
+  .stat-badge .val {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .stat-badge .lbl {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .btn-gradient {
+    background: var(--primary-gradient);
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+    transition: opacity 0.2s ease, transform 0.1s ease;
+  }
+  .btn-gradient:hover {
+    opacity: 0.95;
+    color: #ffffff;
+    transform: translateY(-1px);
+  }
+  .form-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 3px;
+  }
+  .form-control-sm, .form-select-sm {
+    border-radius: 6px;
+    font-size: 0.85rem;
+  }
+  .table-sm th {
+    font-size: 0.8rem;
+    color: #475569;
+  }
+  .table-sm td {
+    font-size: 0.85rem;
+    vertical-align: middle;
+  }
+  .fit-report-box {
+    background: #0f172a;
+    color: #38bdf8;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    padding: 12px;
+    border-radius: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
 </style>
 
-<div class="container-fluid px-4">
-  <div class="card p-3 shadow-sm">
-    <h4 class="mb-2">Analysis Workspace</h4>
-    <p class="small text-muted mb-3">Upload LSV data, configure parameters, and run fitting analysis</p>
+<div class="container-fluid px-3 px-lg-4 py-2">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="fw-bold text-dark mb-0">HER Electrochemical Fitting Workspace</h3>
+      <p class="text-muted small mb-0">Non-linear kinetic modeling, rolling-window Tafel slope, surface coverage ($\theta$), and mechanism decomposition</p>
+    </div>
+    <div class="d-flex gap-2">
+      <div class="dropdown">
+        <button class="btn btn-sm btn-outline-primary dropdown-toggle shadow-sm" type="button" id="loadSampleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="bi bi-file-earmark-arrow-up"></i> Load Example Dataset
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="loadSampleDropdown">
+          <li><a class="dropdown-item sample-option" href="#" data-key="Pt_example.txt"><i class="bi bi-file-text me-2"></i>Pt in Alkaline (Pt_example.txt)</a></li>
+          <li><a class="dropdown-item sample-option" href="#" data-key="LSV_Mo2C_5_EF1_x(4)_exemple.txt"><i class="bi bi-file-text me-2"></i>Mo2C EF1 (LSV_Mo2C_5_EF1_x(4)_exemple.txt)</a></li>
+          <li><a class="dropdown-item sample-option" href="#" data-key="LSV_Mo2C_EF0_3(1)_exemple.txt"><i class="bi bi-file-text me-2"></i>Mo2C EF0 (LSV_Mo2C_EF0_3(1)_exemple.txt)</a></li>
+          <li><a class="dropdown-item sample-option" href="#" data-key="LSV_Mo2C_EF3_3(2)_exemple.txt"><i class="bi bi-file-text me-2"></i>Mo2C EF3 (LSV_Mo2C_EF3_3(2)_exemple.txt)</a></li>
+          <li><a class="dropdown-item sample-option" href="#" data-key="Pt_NaOH_non-free_before(1)_exemple.txt"><i class="bi bi-file-text me-2"></i>Pt in NaOH (Pt_NaOH_non-free_before(1)_exemple.txt)</a></li>
+        </ul>
+      </div>
+      <button type="button" id="resetBtn" class="btn btn-sm btn-outline-secondary shadow-sm">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+    </div>
+  </div>
 
-    <div class="row g-3">
-      <div class="col-lg-5">
-        <form id="fitForm" enctype="multipart/form-data">
-          {% csrf_token %}
-          <div class="mb-3">
-            <label class="form-label">Data file</label>
-            <input name="datafile" class="form-control" type="file" accept=".txt,.csv" required />
+  <div class="row g-3">
+    <!-- LEFT PANEL: Configuration and Inputs -->
+    <div class="col-xl-5 col-lg-6">
+      <form id="fitForm" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="file_path" id="filePathInput" value="" />
+
+        <!-- 1. Data Source Card -->
+        <div class="app-card p-3 mb-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-file-earmark-text"></i> 1. LSV Data Source</h6>
+            <span id="sampleBadge" class="badge bg-success" style="display:none;">Sample Loaded</span>
+          </div>
+
+          <div class="mb-2">
+            <label class="form-label">Upload LSV Data File (.txt, .csv)</label>
+            <input name="datafile" id="dataFileInput" class="form-control form-control-sm" type="file" accept=".txt,.csv,.dat" />
           </div>
 
           <div class="row g-2">
-            <div class="col-6"><label class="form-label">Current col (1-based)</label><input name="current_col" class="form-control" type="number" min="1" value="1" required /></div>
-            <div class="col-6"><label class="form-label">Potential col (1-based)</label><input name="potential_col" class="form-control" type="number" min="1" value="2" required /></div>
+            <div class="col-6">
+              <label class="form-label">Current Column</label>
+              <input name="current_col" id="currCol" class="form-control form-control-sm" type="number" min="1" value="2" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Potential Column</label>
+              <input name="potential_col" id="potCol" class="form-control form-control-sm" type="number" min="1" value="1" required />
+            </div>
+          </div>
+
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Delimiter</label>
+              <select name="delimiter" id="delimiterSelect" class="form-select form-select-sm">
+                <option value="auto" selected>Auto-detect</option>
+                <option value="\t">Tab (\t)</option>
+                <option value=",">Comma (,)</option>
+                <option value=" ">Space</option>
+                <option value=";">Semicolon (;)</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Temperature (K)</label>
+              <input name="temperature" id="tempInput" class="form-control form-control-sm" type="number" step="0.1" value="298.15" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Corrections & Electrochemical Parameters -->
+        <div class="app-card p-3 mb-3">
+          <h6 class="fw-bold mb-2 text-primary"><i class="bi bi-sliders"></i> 2. Electrochemical Corrections</h6>
+          
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Electrode Area ($cm^2$)</label>
+              <input name="area_electrode" id="areaInput" class="form-control form-control-sm" type="number" step="0.0001" value="0.196" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Ohmic Drop $R_u$ ($\Omega$)</label>
+              <input name="ohmic_drop" id="ohmicInput" class="form-control form-control-sm" type="number" step="0.01" value="6.05" required />
+            </div>
           </div>
 
           <div class="row g-2 mt-2">
-            <div class="col-md-6"><label class="form-label">Delimiter</label><select name="delimiter" class="form-select"><option value="auto">Auto</option><option value=",">Comma</option><option value="\t">Tab</option><option value=";">Semicolon</option><option value=" ">Space</option></select></div>
-            <div class="col-md-6"><label class="form-label">Temperature (K)</label><input name="temperature" class="form-control" type="number" step="0.1" value="298.15" /></div>
+            <div class="col-6">
+              <label class="form-label">Ref Potential $E_{\text{ref}}^0$ (V vs SHE)</label>
+              <input name="ref_potential" id="refPotInput" class="form-control form-control-sm" type="number" step="0.0001" value="0.098" placeholder="e.g. 0.098 (Hg/HgO)" required />
+              <div class="form-text text-muted" style="font-size: 0.75rem;">Hg/HgO: 0.098 V • SCE: 0.241 V • Ag/AgCl: 0.197 V</div>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Solution pH</label>
+              <input name="pH" id="phInput" class="form-control form-control-sm" type="number" step="0.1" value="14.0" placeholder="e.g. 14.0" required />
+              <div class="form-text text-muted" style="font-size: 0.75rem;">1 M KOH: pH 14.0 • 0.5 M H₂SO₄: pH 0.0</div>
+            </div>
+          </div>
+          <div class="mt-2 p-2 bg-light rounded border text-muted small">
+            <i class="bi bi-info-circle text-primary"></i> <strong>RHE Nernst Conversion:</strong> $E_{\text{RHE}} = E_{\text{meas}} - (I \cdot R_u) + E_{\text{ref}}^0 + \left(2.303 \frac{RT}{F}\right) \cdot \text{pH}$
+          </div>
+        </div>
+
+        <!-- 3. Model & Kinetic Setup -->
+        <div class="app-card p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-gear-wide-connected"></i> 3. Kinetic Model Setup</h6>
+            <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#advancedParams">
+              <i class="bi bi-chevron-expand"></i> Advanced Kinetic Bounds
+            </button>
           </div>
 
-          <div class="row g-2 mt-2">
-            <div class="col-md-6"><label class="form-label">Electrode area (cm²)</label><input name="area_electrode" class="form-control" type="number" step="0.0001" value="0.5" required /></div>
-            <div class="col-md-6"><label class="form-label">Ohmic drop (Ω)</label><input name="ohmic_drop" class="form-control" type="number" step="0.01" value="6.43" required /></div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Mechanism Model</label>
+              <select name="model_type" id="modelSelect" class="form-select form-select-sm">
+                <option value="simplified" selected>Simplified (Volmer–Heyrovsky)</option>
+                <option value="full">Full (Volmer–Heyrovsky–Tafel)</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label class="form-label">Fitting Method</label>
+              <select name="fitting_method" class="form-select form-select-sm">
+                <option value="powell" selected>Powell (Robust)</option>
+                <option value="nelder">Nelder-Mead (Simplex)</option>
+              </select>
+            </div>
           </div>
 
-          <div class="row g-2 mt-2">
-            <div class="col-md-4"><label class="form-label">pH</label><input name="pH" class="form-control" type="number" step="0.1" value="7.0" /></div>
-            <div class="col-md-4"><label class="form-label">Ref potential (V)</label><input name="ref_potential" class="form-control" type="number" step="0.001" value="0.0" /></div>
-            <div class="col-md-4"><label class="form-label">Model</label><select name="model_type" class="form-select"><option value="simplified">Simplified (Volmer–Heyrovsky)</option><option value="full">Full (Volmer–Heyrovsky–Tafel)</option></select></div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Tafel Rolling Window (pts)</label>
+              <input name="tafel_window" id="tafelWindowInput" class="form-control form-control-sm" type="number" min="3" max="100" value="10" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Symmetry Coefficients</label>
+              <div class="form-text small mt-1">$\beta_v=0.5, \beta_h=0.5$ (Fixed by default in Advanced)</div>
+            </div>
           </div>
 
-          <div class="mt-3">
-            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#advancedParams">Advanced parameters</button>
-          </div>
-
-          <div class="collapse mt-3" id="advancedParams">
-            <div class="card card-body">
-              <div class="mb-2"><small class="text-muted">Set initial, bounds and whether the parameter should vary during fit.</small></div>
-              <!-- reference potential moved out of advanced parameters -->
+          <!-- Collapsible Advanced Bounds -->
+          <div class="collapse mt-2" id="advancedParams">
+            <div class="border rounded p-2 bg-light">
               <div class="table-responsive">
-                <table class="table table-sm align-middle">
-                  <thead>
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
                     <tr>
-                      <th>Parameter</th>
+                      <th>Param</th>
                       <th>Initial</th>
                       <th>Min</th>
                       <th>Max</th>
@@ -65,267 +273,439 @@
                   </thead>
                   <tbody>
                     <tr class="param-row" data-models="simplified,full">
-                      <td>k1</td>
-                      <td><input name="k1_init" placeholder="Default" class="form-control form-control-sm" type="number" step="any" /></td>
+                      <td><strong>$k_1$</strong></td>
+                      <td><input name="k1_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k1_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k1_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
-                      <td><select name="vary_k1" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_k1" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-
                     <tr class="param-row" data-models="simplified,full">
-                      <td>k1r</td>
-                      <td><input name="k1r_init" placeholder="Default" class="form-control form-control-sm" type="number" step="any" /></td>
+                      <td><strong>$k_{1r}$</strong></td>
+                      <td><input name="k1r_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k1r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k1r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
-                      <td><select name="vary_k1r" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_k1r" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-
                     <tr class="param-row" data-models="simplified,full">
-                      <td>k2</td>
-                      <td><input name="k2_init" placeholder="Default" class="form-control form-control-sm" type="number" step="any" /></td>
+                      <td><strong>$k_2$</strong></td>
+                      <td><input name="k2_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k2_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k2_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
-                      <td><select name="vary_k2" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_k2" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-
                     <tr class="param-row" data-models="simplified">
-                      <td>k2r</td>
-                      <td><input name="k2r_init" placeholder="Default" class="form-control form-control-sm" type="number" step="any" /></td>
+                      <td><strong>$k_{2r}$</strong></td>
+                      <td><input name="k2r_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k2r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k2r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
-                      <td><select name="vary_k2r" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_k2r" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-
                     <tr class="param-row" data-models="full">
-                      <td>k3</td>
-                      <td><input name="k3_init" placeholder="Default" class="form-control form-control-sm" type="number" step="any" /></td>
+                      <td><strong>$k_3$</strong></td>
+                      <td><input name="k3_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k3_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k3_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
-                      <td><select name="vary_k3" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_k3" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-
                     <tr class="param-row" data-models="simplified,full">
-                      <td>bbv</td>
+                      <td><strong>$\beta_v$</strong></td>
                       <td><input name="bbv" class="form-control form-control-sm" type="number" step="0.01" value="0.5" /></td>
                       <td><input name="bbv_min" class="form-control form-control-sm" type="number" step="0.01" value="0.0"/></td>
                       <td><input name="bbv_max" class="form-control form-control-sm" type="number" step="0.01" value="1.0"/></td>
-                      <td><select name="vary_bbv" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_bbv" class="form-select form-select-sm"><option value="false" selected>False (Fixed)</option><option value="true">True (Vary)</option></select></td>
                     </tr>
-
                     <tr class="param-row" data-models="simplified,full">
-                      <td>bbh</td>
+                      <td><strong>$\beta_h$</strong></td>
                       <td><input name="bbh" class="form-control form-control-sm" type="number" step="0.01" value="0.5" /></td>
                       <td><input name="bbh_min" class="form-control form-control-sm" type="number" step="0.01" value="0.0"/></td>
                       <td><input name="bbh_max" class="form-control form-control-sm" type="number" step="0.01" value="1.0"/></td>
-                      <td><select name="vary_bbh" class="form-select form-select-sm"><option value="true" selected>true</option><option value="false">false</option></select></td>
+                      <td><select name="vary_bbh" class="form-select form-select-sm"><option value="false" selected>False (Fixed)</option><option value="true">True (Vary)</option></select></td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-
-              <div class="mt-2"><label class="form-label">Fitting method</label><select name="fitting_method" class="form-select"><option value="powell">powell</option><option value="nelder">nelder</option></select></div>
-            </div>
-          </div>
-
-          <div class="d-flex gap-2 mt-3">
-            <button type="submit" class="btn btn-primary btn-sm">Run Fit & Plot</button>
-            <button type="button" id="openSummary" class="btn btn-outline-secondary btn-sm">Open Summary</button>
-            <div class="btn-group">
-              <button type="button" id="downloadParams" class="btn btn-outline-secondary btn-sm">Export Params/Stats</button>
-              <select id="exportPlotSelect" class="form-select form-select-sm ms-2 me-2" style="width:170px;">
-                <option value="fit">Fit Plot</option>
-                <option value="theta">Theta</option>
-                <option value="tafel">Tafel</option>
-                <option value="all">All (zip)</option>
-              </select>
-              <button type="button" id="downloadGraphData" class="btn btn-outline-secondary btn-sm">Export Plot Data</button>
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <div class="col-lg-7">
-        <div class="mb-3">
-          <div class="card p-2 mb-2">
-            <strong>Fit Plot</strong>
-            <div class="mt-2">
-              <img id="plot" alt="fit plot" class="img-fluid" style="display:none" />
-            </div>
-          </div>
-
-          <div class="row g-2">
-            <div class="col-md-6">
-              <div class="card p-2 mb-2 h-100">
-                <strong>Theta</strong>
-                <div class="mt-2"><img id="thetaThumb" alt="theta" class="img-fluid" style="display:none" /></div>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="card p-2 mb-2 h-100">
-                <strong>Tafel</strong>
-                <div class="mt-2"><img id="tafelThumb" alt="tafel" class="img-fluid" style="display:none" /></div>
-              </div>
             </div>
           </div>
         </div>
 
-        <div class="mb-2">
-          <div id="resultsRow" class="row">
-            <div class="col-md-7">
-              <div class="card p-2 mb-2">
-                <div class="d-flex justify-content-between align-items-center">
-                  <strong>Fitted Parameters</strong>
-                </div>
-                <div class="table-responsive mt-2">
-                  <table id="fittedParams" class="table table-sm table-striped mb-0"><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody></tbody></table>
-                </div>
-              </div>
-            </div>
-            <div class="col-md-5">
-              <div class="card p-2 mb-2">
-                <strong>Fit Statistics</strong>
-                <div class="table-responsive mt-2">
-                  <table id="fitStats" class="table table-sm mb-0"><tbody></tbody></table>
-                </div>
-              </div>
-            </div>
-          </div>
-          <pre id="output" class="mt-2"></pre>
+        <!-- Action Button Panel -->
+        <div class="d-grid gap-2 mb-3">
+          <button type="submit" id="runFitBtn" class="btn btn-gradient py-2 shadow">
+            <i class="bi bi-play-circle-fill"></i> Run Kinetic Fitting & Analysis
+          </button>
         </div>
-      </div>
+      </form>
     </div>
 
-    <hr class="mt-4" />
+    <!-- RIGHT PANEL: Multi-Panel Visualizations & Fit Results -->
+    <div class="col-xl-7 col-lg-6">
+      <!-- 4-Panel Visualization Dashboard -->
+      <div class="row g-2 mb-3">
+        <!-- Plot 1: Polarization Curve -->
+        <div class="col-md-6">
+          <div class="plot-container h-100">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <strong class="small text-dark"><i class="bi bi-graph-up text-primary"></i> Polarization Fit ($I$ vs $E$)</strong>
+              <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="zoomPlot('plot')"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div id="plotHolder" class="plot-placeholder">
+              <i class="bi bi-graph-up fs-2 mb-1"></i>
+              <span class="small">Polarization Curve will appear here</span>
+            </div>
+            <img id="plot" alt="Polarization Fit" class="plot-img" onclick="zoomPlot('plot')" />
+          </div>
+        </div>
+
+        <!-- Plot 2: Surface Coverage -->
+        <div class="col-md-6">
+          <div class="plot-container h-100">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <strong class="small text-dark"><i class="bi bi-pie-chart text-success"></i> Surface Coverage ($\theta_H$)</strong>
+              <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="zoomPlot('thetaThumb')"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div id="thetaHolder" class="plot-placeholder">
+              <i class="bi bi-pie-chart fs-2 mb-1"></i>
+              <span class="small">$\theta_H$ Coverage will appear here</span>
+            </div>
+            <img id="thetaThumb" alt="Surface Coverage" class="plot-img" onclick="zoomPlot('thetaThumb')" />
+          </div>
+        </div>
+
+        <!-- Plot 3: Tafel Slope -->
+        <div class="col-md-6">
+          <div class="plot-container h-100">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <strong class="small text-dark"><i class="bi bi-activity text-warning"></i> Tafel Slope ($b$ vs $E$)</strong>
+              <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="zoomPlot('tafelThumb')"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
+            <div id="tafelHolder" class="plot-placeholder">
+              <i class="bi bi-activity fs-2 mb-1"></i>
+              <span class="small">Tafel Slope will appear here</span>
+            </div>
+            <img id="tafelThumb" alt="Tafel Slope" class="plot-img" onclick="zoomPlot('tafelThumb')" />
+          </div>
+        </div>
+
+
+      </div>
+
+      <!-- Goodness-of-Fit Stat Badges -->
+      <div class="row g-2 mb-3" id="statsRow" style="display:none;">
+        <div class="col-3">
+          <div class="stat-badge">
+            <div class="val" id="statR2">-</div>
+            <div class="lbl">$R^2$ Goodness</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="stat-badge">
+            <div class="val" id="statRedChi">-</div>
+            <div class="lbl">Reduced $\chi^2$</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="stat-badge">
+            <div class="val" id="statAic">-</div>
+            <div class="lbl">AIC</div>
+          </div>
+        </div>
+        <div class="col-3">
+          <div class="stat-badge">
+            <div class="val" id="statPoints">-</div>
+            <div class="lbl">Data Points</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fitted Kinetic Parameters Table & Fit Report Accordion -->
+      <div class="app-card p-3 mb-3" id="resultsCard" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-table"></i> Optimized Kinetic Rate Constants</h6>
+          <div class="btn-group">
+            <button type="button" id="downloadZipBtn" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-zip"></i> Export Results (ZIP)</button>
+            <button type="button" id="downloadReportBtn" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-earmark-text"></i> Fit Report (.txt)</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table id="fittedParamsTable" class="table table-sm table-striped align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Parameter</th>
+                <th>Fitted Value</th>
+                <th>Standard Error</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="mt-3">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="small fw-bold text-muted"><i class="bi bi-code-square"></i> Detailed lmfit Fit Report</span>
+            <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#fitReportCollapse">Toggle Report</button>
+          </div>
+          <div class="collapse show" id="fitReportCollapse">
+            <pre class="fit-report-box mb-0" id="fitReportText"></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Error / Notification banner -->
+      <div id="statusAlert" class="alert alert-info py-2 small" style="display:none;"></div>
+    </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Fullscreen Plot Modal -->
+<div class="modal fade" id="plotModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title fw-bold" id="modalPlotTitle">Enlarged View</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center p-2">
+        <img id="modalPlotImg" class="img-fluid rounded" alt="Enlarged Plot" />
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
-;(function(){
-  const form = document.getElementById('fitForm')
-  const out = document.getElementById('output')
-  const img = document.getElementById('plot')
-  const summaryBtn = document.getElementById('openSummary')
-  const fittedBody = document.querySelector('#fittedParams tbody')
-  const statsBody = document.querySelector('#fitStats tbody')
-  const thetaThumb = document.getElementById('thetaThumb')
-  const tafelThumb = document.getElementById('tafelThumb')
-  const downloadParamsBtn = document.getElementById('downloadParams')
-  const downloadGraphDataBtn = document.getElementById('downloadGraphData')
-  const exportPlotSelect = document.getElementById('exportPlotSelect')
-  const modelSelect = form.querySelector('select[name="model_type"]')
-
-  function updateParamVisibility(){
-    try{
-      const m = (modelSelect && modelSelect.value) ? modelSelect.value : 'simplified'
-      document.querySelectorAll('.param-row').forEach(r => {
-        const models = (r.getAttribute('data-models')||'').split(',').map(s=>s.trim()).filter(Boolean)
-        if(models.length === 0) { r.style.display = '' ; return }
-        r.style.display = models.includes(m) ? '' : 'none'
-      })
-    }catch(e){ /* silent */ }
+  let plotModalObj = null
+  function zoomPlot(imgId) {
+    const el = document.getElementById(imgId)
+    if (!el || !el.src || el.style.display === 'none') return
+    const modalImg = document.getElementById('modalPlotImg')
+    const modalTitle = document.getElementById('modalPlotTitle')
+    modalImg.src = el.src
+    modalTitle.textContent = el.alt || 'High Resolution Plot'
+    if (!plotModalObj) {
+      plotModalObj = new bootstrap.Modal(document.getElementById('plotModal'))
+    }
+    plotModalObj.show()
   }
-  // update once and when model changes
-  updateParamVisibility()
-  if(modelSelect) modelSelect.addEventListener('change', updateParamVisibility)
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    out.textContent = 'Running fit...'
-    if(fittedBody) fittedBody.innerHTML = ''
-    if(statsBody) statsBody.innerHTML = ''
-    img.style.display = 'none'
-    thetaThumb.style.display = 'none'
-    tafelThumb.style.display = 'none'
-    try {
-      const fd = new FormData(form)
-      const fitRes = await fetch('/fit', { method: 'POST', body: fd })
-      const fitJson = await fitRes.json()
-      if (!fitJson.success) { out.textContent = 'Fit failed: '+(fitJson.error||''); return }
-      out.textContent = ''
-      const s = fitJson.stats || {}
-      // populate stats table
-      if(statsBody){
-        statsBody.innerHTML = ''
-        const addStat = (label, val) => { const tr=document.createElement('tr'); tr.innerHTML = `<th style="width:60%">${label}</th><td>${val!==undefined?val:''}</td>`; statsBody.appendChild(tr) }
-        addStat('χ²', s.chisqr)
-        addStat('Reduced χ²', s.redchi)
-        addStat('AIC', s.aic)
-        addStat('BIC', s.bic)
-        addStat('nfree', s.nfree)
-        addStat('n_points', fitJson.n_points||'')
-      }
-      // populate fitted parameters
-      if(fittedBody){
-        fittedBody.innerHTML = ''
-        const p = fitJson.parameters||{}
-        for(const [k,v] of Object.entries(p)){
-          const tr = document.createElement('tr')
-          tr.innerHTML = `<td>${k}</td><td class='muted'>${v}</td>`
-          fittedBody.appendChild(tr)
+  ;(function(){
+    const form = document.getElementById('fitForm')
+    const runBtn = document.getElementById('runFitBtn')
+    const statusAlert = document.getElementById('statusAlert')
+    const modelSelect = document.getElementById('modelSelect')
+    const loadSampleBtn = document.getElementById('loadSampleBtn')
+    const resetBtn = document.getElementById('resetBtn')
+    const sampleBadge = document.getElementById('sampleBadge')
+    const filePathInput = document.getElementById('filePathInput')
+    const dataFileInput = document.getElementById('dataFileInput')
+
+    const plotImg = document.getElementById('plot')
+    const thetaImg = document.getElementById('thetaThumb')
+    const tafelImg = document.getElementById('tafelThumb')
+
+
+    const plotHolder = document.getElementById('plotHolder')
+    const thetaHolder = document.getElementById('thetaHolder')
+    const tafelHolder = document.getElementById('tafelHolder')
+
+
+    const statsRow = document.getElementById('statsRow')
+    const resultsCard = document.getElementById('resultsCard')
+    const fitReportText = document.getElementById('fitReportText')
+    const paramsTbody = document.querySelector('#fittedParamsTable tbody')
+
+    const statR2 = document.getElementById('statR2')
+    const statRedChi = document.getElementById('statRedChi')
+    const statAic = document.getElementById('statAic')
+    const statPoints = document.getElementById('statPoints')
+
+    const downloadZipBtn = document.getElementById('downloadZipBtn')
+    const downloadReportBtn = document.getElementById('downloadReportBtn')
+
+    function updateParamVisibility(){
+      try{
+        const m = (modelSelect && modelSelect.value) ? modelSelect.value : 'simplified'
+        document.querySelectorAll('.param-row').forEach(r => {
+          const models = (r.getAttribute('data-models')||'').split(',').map(s=>s.trim()).filter(Boolean)
+          if(models.length === 0) { r.style.display = '' ; return }
+          r.style.display = models.includes(m) ? '' : 'none'
+        })
+      }catch(e){}
+    }
+    updateParamVisibility()
+    if(modelSelect) modelSelect.addEventListener('change', updateParamVisibility)
+
+    // Load Sample Dataset by Key
+    async function loadSampleByKey(key) {
+      try {
+        const url = key ? `/load_sample?sample=${encodeURIComponent(key)}` : '/load_sample'
+        const res = await fetch(url)
+        const data = await res.json()
+        if (data.success) {
+          dataFileInput.value = ''
+          filePathInput.value = data.filename
+          const labelName = (data.defaults && data.defaults.name) ? data.defaults.name : data.filename
+          sampleBadge.textContent = labelName
+          sampleBadge.style.display = 'inline-block'
+          
+          if (data.defaults) {
+            document.getElementById('currCol').value = data.defaults.current_col || 1
+            document.getElementById('potCol').value = data.defaults.potential_col || 2
+            document.getElementById('areaInput').value = data.defaults.area_electrode || 0.196
+            document.getElementById('ohmicInput').value = data.defaults.ohmic_drop || 6.05
+            document.getElementById('refPotInput').value = data.defaults.ref_potential !== undefined ? data.defaults.ref_potential : 0.098
+            document.getElementById('phInput').value = data.defaults.pH !== undefined ? data.defaults.pH : 14.0
+            document.getElementById('tafelWindowInput').value = data.defaults.tafel_window || 10
+            if (modelSelect && data.defaults.model_type) {
+              modelSelect.value = data.defaults.model_type
+              updateParamVisibility()
+            }
+          }
+
+          statusAlert.className = 'alert alert-success py-2 small'
+          statusAlert.textContent = `Dataset loaded: ${labelName}. Click "Run Kinetic Fitting & Analysis" to execute.`
+          statusAlert.style.display = 'block'
         }
+      } catch (err) {
+        alert('Failed to load sample dataset: ' + err.message)
       }
-      // attach export handlers using latest fitJson
-      if(downloadParamsBtn) downloadParamsBtn.onclick = ()=> {
-        // create CSV: first parameters, then a blank line, then stats
-        try{
-          const p = fitJson.parameters||{}
-          const s = fitJson.stats||{}
-          let csv = 'type,name,value\n'
-          for(const [k,v] of Object.entries(p)) csv += `param,${k},${v}\n`
-          csv += '\n'
-          for(const [k,v] of Object.entries(s)) csv += `stat,${k},${v}\n`
-          const blob = new Blob([csv], {type:'text/csv'})
-          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download='fit_params_stats.csv'; a.click()
-        }catch(err){ alert('Export failed: '+(err.message||err)) }
-      }
-      if(downloadGraphDataBtn) downloadGraphDataBtn.onclick = async ()=> {
-        // request theta and tafel numeric data from endpoints
-        try{
-          const choice = exportPlotSelect ? exportPlotSelect.value : 'all'
-          if(choice === 'all'){
-            // request zip from server
-            const fdZip = new FormData(form)
-            const zipRes = await fetch('/export_plots_zip', {method:'POST', body: fdZip})
-            if(!zipRes.ok) throw new Error('ZIP export failed')
-            const blob = await zipRes.blob()
-            const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='plots.zip'; a.click(); return
-          }
-          // otherwise fetch single plot JSON and convert to CSV
-          if(choice === 'fit'){
-            const fd = new FormData(form); fd.append('as','json')
-            const res = await fetch('/plot',{method:'POST', body: fd})
-            const plotData = res.ok ? await res.json() : null
-            if(plotData){ let csv = 'Potential,Fitted_current\n' + plotData.x.map((v,i)=>`${v},${plotData.y[i]}`).join('\n'); const b=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='fit_plot.csv'; a.click() }
-            return
-          }
-          if(choice === 'theta'){
-            const fd = new FormData(form); fd.append('as','json')
-            const res = await fetch('/plot_theta',{method:'POST', body: fd})
-            const thetaData = res.ok ? await res.json() : null
-            if(thetaData){ let csv = 'Potential,Hydrogen_Coverage\n' + thetaData.x.map((v,i)=>`${v},${thetaData.y[i]}`).join('\n'); const b=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='theta.csv'; a.click() }
-            return
-          }
-          if(choice === 'tafel'){
-            const fd = new FormData(form); fd.append('as','json')
-            const res = await fetch('/plot_tafel',{method:'POST', body: fd})
-            const tafelData = res.ok ? await res.json() : null
-            if(tafelData){ let csv = 'Average_Potential,Tafel_Slope\n' + tafelData.x.map((v,i)=>`${v},${tafelData.slope[i]}`).join('\n'); const b=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='tafel.csv'; a.click() }
-            return
-          }
-        }catch(err){ alert('Export failed: '+(err.message||err)) }
-      }
-      const plotRes = await fetch('/plot', { method: 'POST', body: fd })
-      if (plotRes.ok) { img.src = URL.createObjectURL(await plotRes.blob()); img.style.display = 'block' }
-      const thetaRes = await fetch('/plot_theta', { method: 'POST', body: fd })
-      if (thetaRes.ok) { thetaThumb.src = URL.createObjectURL(await thetaRes.blob()); thetaThumb.style.display = 'block' }
-      const tafelRes = await fetch('/plot_tafel', { method: 'POST', body: fd })
-      if (tafelRes.ok) { tafelThumb.src = URL.createObjectURL(await tafelRes.blob()); tafelThumb.style.display = 'block' }
-      summaryBtn.onclick = ()=> window.open('/fit_summary','_blank')
-      // legacy raw JSON download removed; use Export buttons
-    } catch(err){ out.textContent = 'Error: '+(err.message||err) }
-  })
-})()
-</script>
+    }
 
+    document.querySelectorAll('.sample-option').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault()
+        const key = item.getAttribute('data-key')
+        loadSampleByKey(key)
+      })
+    })
+
+    // Reset Form
+    resetBtn.addEventListener('click', () => {
+      form.reset()
+      sampleBadge.style.display = 'none'
+      filePathInput.value = ''
+      updateParamVisibility()
+      statusAlert.style.display = 'none'
+    })
+
+    dataFileInput.addEventListener('change', () => {
+      if (dataFileInput.files.length > 0) {
+        sampleBadge.style.display = 'none'
+        filePathInput.value = ''
+      }
+    })
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      runBtn.disabled = true
+      runBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Fitting Kinetic Equations...'
+      statusAlert.className = 'alert alert-info py-2 small'
+      statusAlert.textContent = 'Optimizing rate constants and computing coverage & Tafel slopes...'
+      statusAlert.style.display = 'block'
+
+      try {
+        const fd = new FormData(form)
+        const fitRes = await fetch('/fit', { method: 'POST', body: fd })
+        const fitJson = await fitRes.json()
+
+        if (!fitJson.success) {
+          statusAlert.className = 'alert alert-danger py-2 small'
+          statusAlert.textContent = 'Fitting Failed: ' + (fitJson.error || 'Unknown error occurred')
+          runBtn.disabled = false
+          runBtn.innerHTML = '<i class="bi bi-play-circle-fill"></i> Run Kinetic Fitting & Analysis'
+          return
+        }
+
+        statusAlert.className = 'alert alert-success py-2 small'
+        statusAlert.textContent = 'Kinetic fitting completed successfully!'
+
+        // Prevent file race condition on concurrent plot generation
+        if (fitJson.file_path) {
+          fd.delete('datafile')
+          fd.set('file_path', fitJson.file_path)
+        }
+
+        // Populate Stats
+        const st = fitJson.stats || {}
+        statR2.textContent = st.r_squared !== null && st.r_squared !== undefined ? st.r_squared.toFixed(4) : '-'
+        statRedChi.textContent = st.redchi !== null && st.redchi !== undefined ? st.redchi.toExponential(3) : '-'
+        statAic.textContent = st.aic !== null && st.aic !== undefined ? st.aic.toFixed(2) : '-'
+        statPoints.textContent = fitJson.n_points || '-'
+        statsRow.style.display = 'flex'
+
+        // Populate Parameters Table
+        paramsTbody.innerHTML = ''
+        const params = fitJson.parameters || {}
+        const details = fitJson.parameters_details || {}
+        for (const [k, v] of Object.entries(params)) {
+          const det = details[k] || {}
+          const valStr = (typeof v === 'number') ? v.toExponential(4) : String(v)
+          const errStr = (det.stderr !== null && det.stderr !== undefined) ? '± ' + det.stderr.toExponential(2) : '—'
+          const varyBadge = det.vary === false ? '<span class="badge bg-secondary">Fixed</span>' : '<span class="badge bg-primary">Fitted</span>'
+          const tr = document.createElement('tr')
+          tr.innerHTML = `<td><strong>${k}</strong></td><td class="text-primary font-monospace">${valStr}</td><td class="text-muted font-monospace">${errStr}</td><td>${varyBadge}</td>`
+          paramsTbody.appendChild(tr)
+        }
+
+        fitReportText.textContent = fitJson.fit_report || 'No detailed fit report available.'
+        resultsCard.style.display = 'block'
+
+        // Fetch Plots Concurrently
+        const fetchPlot = async (url, imgEl, holderEl) => {
+          try {
+            const r = await fetch(url, { method: 'POST', body: fd })
+            if (r.ok) {
+              const blob = await r.blob()
+              imgEl.src = URL.createObjectURL(blob)
+              imgEl.style.display = 'block'
+              holderEl.style.display = 'none'
+            }
+          } catch(e){}
+        }
+
+        await Promise.all([
+          fetchPlot('/plot', plotImg, plotHolder),
+          fetchPlot('/plot_theta', thetaImg, thetaHolder),
+          fetchPlot('/plot_tafel', tafelImg, tafelHolder)
+        ])
+
+        // Configure Export Handlers
+        downloadZipBtn.onclick = async () => {
+          try {
+            const zRes = await fetch('/export_plots_zip', { method: 'POST', body: fd })
+            if (!zRes.ok) throw new Error('ZIP export failed')
+            const blob = await zRes.blob()
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(blob)
+            a.download = 'HER_Fitting_Results.zip'
+            a.click()
+          } catch(err) {
+            alert('Export failed: ' + err.message)
+          }
+        }
+
+        downloadReportBtn.onclick = async () => {
+          try {
+            const rRes = await fetch('/fit_report', { method: 'POST', body: fd })
+            if (!rRes.ok) throw new Error('Fit report download failed')
+            const blob = await rRes.blob()
+            const a = document.createElement('a')
+            a.href = URL.createObjectURL(blob)
+            a.download = 'Fit_Report.txt'
+            a.click()
+          } catch(err) {
+            alert('Report download failed: ' + err.message)
+          }
+        }
+
+      } catch (err) {
+        statusAlert.className = 'alert alert-danger py-2 small'
+        statusAlert.textContent = 'Error: ' + (err.message || err)
+      } finally {
+        runBtn.disabled = false
+        runBtn.innerHTML = '<i class="bi bi-play-circle-fill"></i> Run Kinetic Fitting & Analysis'
+      }
+    })
+  })()
+</script>
 {% endblock %}
