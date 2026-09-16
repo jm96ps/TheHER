@@ -1,513 +1,818 @@
-"""Lightweight and robust hydrogen fitting model for web and scientific use.
+"""Hydrogen-evolution-reaction fitting model.
 
-Implements HER kinetic models (Volmer-Heyrovsky and Volmer-Heyrovsky-Tafel),
-coverage calculations (theta_H and empty sites), reaction step decomposition,
-moving-window Tafel regression, and comprehensive goodness-of-fit statistics.
+Implements simplified Volmer-Heyrovsky and full Volmer-Heyrovsky-Tafel
+steady-state models, coverage, reaction decomposition, moving-window Tafel
+analysis, and robust kinetic fitting in log-rate-constant space.
 """
+
+from math import log
+from math import log10
 import os
+import random
+
+import warnings
+
 import numpy as np
 import pandas as pd
 from scipy import stats
-from lmfit import Model, create_params
+from lmfit import Model, Parameters
 
-F_CONST = 96485.3321  # C / mol (Faraday's constant)
-R_CONST = 8.314462618  # J / (mol * K) (Universal gas constant)
+warnings.filterwarnings(
+    "ignore", 
+    message="Using UFloat objects with std_dev==0 may give unexpected results."
+)
+
+F_CONST = 96485.3321  # C mol^-1
+R_CONST = 8.314462618  # J mol^-1 K^-1
+
+
+class InvalidModelState(ValueError):
+    """Raised when a parameter set leads to an invalid model prediction."""
 
 
 def rnd(min_val=1e-20, max_val=1e-2):
-    import random
+    """Sample a positive value uniformly in log10-space."""
     try:
-        min_v = float(min_val) if (min_val is not None and float(min_val) > 0) else 1e-20
-        max_v = float(max_val) if (max_val is not None and float(max_val) > 0) else 1e-2
+        min_v = float(min_val)
+        max_v = float(max_val)
+        min_v = min_v if min_v > 0 else 1e-20
+        max_v = max_v if max_v > 0 else 1e-2
         if min_v >= max_v:
             return min_v
-        log_min = np.log10(min_v)
-        log_max = np.log10(max_v)
-        log_val = random.uniform(log_min, log_max)
-        return float(10 ** log_val)
+        return float(10.0 ** random.uniform(np.log10(min_v), np.log10(max_v)))
     except Exception:
-        exp1 = random.randint(-15, -4)
-        significand = round(random.uniform(0.1, 9), 2)
-        return float(significand * (10 ** exp1))
+        return float((10.0 ** random.randint(-15, -4)) * random.uniform(0.1, 9.0))
 
 
-class hydrogen_fitting:
-    def __init__(self, file_path=None, area_electrode=None, ohmic_drop=0.0, ref_correction=None,
-                 ref_potential=None, pH=None, temperature=298.15, gas_constant=8.314462618,
-                 bbv_initial=0.5, bbh_initial=0.5, vary_bbv=True, vary_bbh=True,
-                 bbv_min=0.0, bbv_max=1.0, bbh_min=0.0, bbh_max=1.0,
-                 k1_initial=None, k1_min=1e-20, k1_max=1e-2, vary_k1=True,
-                 k1r_initial=None, k1r_min=1e-20, k1r_max=1e-2, vary_k1r=True,
-                 k2_initial=None, k2_min=1e-20, k2_max=1e-2, vary_k2=True,
-                 k2r_initial=None, k2r_min=1e-20, k2r_max=1e-2, vary_k2r=True,
-                 k3_initial=None, k3_min=1e-20, k3_max=1e-2, vary_k3=True,
-                 delimiter='auto', current_col=1, potential_col=2, current_units='A'):
+class HydrogenFitting:
+    """Hydrogen Evolution Reaction (HER) kinetic fitting and analysis engine.
+
+    Implements steady-state Volmer-Heyrovsky, Volmer-Tafel and Volmer-Heyrovsky-Tafel models,
+    reaction decomposition, moving-window Tafel slope analysis, and robust kinetic optimization.
+    """
+    def __init__(
+        self,
+        file_path=None,
+        area_electrode=None,
+        ohmic_drop=0.0,
+        ref_correction=None,
+        ref_potential=None,
+        pH=None,
+        temperature=298.15,
+        gas_constant=R_CONST,
+        potential_min=None,
+        potential_max=None,
+        bbv_initial=0.5,
+        bbh_initial=0.5,
+        vary_bbv=False,
+        vary_bbh=False,
+        bbv_min=0.0,
+        bbv_max=1.0,
+        bbh_min=0.0,
+        bbh_max=1.0,
+        k1_initial=None,
+        k1_min=1e-20,
+        k1_max=1e-2,
+        vary_k1=True,
+        k1r_initial=None,
+        k1r_min=1e-20,
+        k1r_max=1e-2,
+        vary_k1r=True,
+        k2_initial=None,
+        k2_min=1e-20,
+        k2_max=1e-2,
+        vary_k2=True,
+        k2r_initial=None,
+        k2r_min=1e-20,
+        k2r_max=1e-2,
+        vary_k2r=True,
+        k3_initial=None,
+        k3_min=1e-20,
+        k3_max=1e-2,
+        vary_k3=True,
+        k3r_initial=None,
+        k3r_min=1e-20,
+        k3r_max=1e-2,
+        vary_k3r=True,
+        delimiter="auto",
+        current_col=2,
+        potential_col=1,
+        current_units="A",
+    ):
         self.file_path = file_path
         self.area_electrode = area_electrode
-        self.ohmic_drop = float(ohmic_drop) if ohmic_drop is not None else 0.0
-        self.ref_correction = ref_correction
-        self.temperature = float(temperature) if temperature is not None else 298.15
-        self.gas_constant = float(gas_constant) if gas_constant is not None else R_CONST
+        self.ohmic_drop = self._safe_float(ohmic_drop, 0.0)
         self.ref_potential = ref_potential
         self.pH = pH
-        self.bbv_initial = float(bbv_initial) if bbv_initial is not None else 0.5
-        self.bbh_initial = float(bbh_initial) if bbh_initial is not None else 0.5
-        self.vary_bbv = bool(vary_bbv)
-        self.vary_bbh = bool(vary_bbh)
-
-        try:
-            self.bbv_min = float(bbv_min)
-        except Exception:
-            self.bbv_min = 0.0
-        try:
-            self.bbv_max = float(bbv_max)
-        except Exception:
-            self.bbv_max = 1.0
-        try:
-            self.bbh_min = float(bbh_min)
-        except Exception:
-            self.bbh_min = 0.0
-        try:
-            self.bbh_max = float(bbh_max)
-        except Exception:
-            self.bbh_max = 1.0
-
+        self.temperature = self._safe_float(temperature, 298.15)
+        self.gas_constant = self._safe_float(gas_constant, R_CONST)
+        self.potential_min = self._safe_float(potential_min, None)
+        self.potential_max = self._safe_float(potential_max, None)
+        self.current_units = current_units
         self.delimiter = delimiter
 
-        def _safe_float(v, default=None):
-            try:
-                return float(v) if v is not None and str(v).strip() != '' else default
-            except Exception:
-                return default
+        self.bbv_initial = self._safe_float(bbv_initial, 0.5)
+        self.bbh_initial = self._safe_float(bbh_initial, 0.5)
+        self.vary_bbv = bool(vary_bbv)
+        self.vary_bbh = bool(vary_bbh)
+        self.bbv_min = self._safe_float(bbv_min, 0.0)
+        self.bbv_max = self._safe_float(bbv_max, 1.0)
+        self.bbh_min = self._safe_float(bbh_min, 0.0)
+        self.bbh_max = self._safe_float(bbh_max, 1.0)
 
-        self.k1_initial = _safe_float(k1_initial, None)
-        self.k1_min = _safe_float(k1_min, 1e-20)
-        self.k1_max = _safe_float(k1_max, 1e-2)
+        self.k1_initial = self._safe_float(k1_initial, None)
+        self.k1_min = self._positive_bound(k1_min, 1e-20)
+        self.k1_max = self._positive_bound(k1_max, 1e-2)
         self.vary_k1 = bool(vary_k1)
 
-        self.k1r_initial = _safe_float(k1r_initial, None)
-        self.k1r_min = _safe_float(k1r_min, 1e-20)
-        self.k1r_max = _safe_float(k1r_max, 1e-2)
+        self.k1r_initial = self._safe_float(k1r_initial, None)
+        self.k1r_min = self._positive_bound(k1r_min, 1e-20)
+        self.k1r_max = self._positive_bound(k1r_max, 1e-2)
         self.vary_k1r = bool(vary_k1r)
 
-        self.k2_initial = _safe_float(k2_initial, None)
-        self.k2_min = _safe_float(k2_min, 1e-20)
-        self.k2_max = _safe_float(k2_max, 1e-2)
+        self.k2_initial = self._safe_float(k2_initial, None)
+        self.k2_min = self._positive_bound(k2_min, 1e-20)
+        self.k2_max = self._positive_bound(k2_max, 1e-2)
         self.vary_k2 = bool(vary_k2)
 
-        self.k2r_initial = _safe_float(k2r_initial, None)
-        self.k2r_min = _safe_float(k2r_min, 1e-20)
-        self.k2r_max = _safe_float(k2r_max, 1e-2)
+        self.k2r_initial = self._safe_float(k2r_initial, None)
+        self.k2r_min = self._positive_bound(k2r_min, 1e-20)
+        self.k2r_max = self._positive_bound(k2r_max, 1e-2)
         self.vary_k2r = bool(vary_k2r)
 
-        self.k3_initial = _safe_float(k3_initial, None)
-        self.k3_min = _safe_float(k3_min, 1e-20)
-        self.k3_max = _safe_float(k3_max, 1e-2)
+        self.k3_initial = self._safe_float(k3_initial, None)
+        self.k3_min = self._positive_bound(k3_min, 1e-20)
+        self.k3_max = self._positive_bound(k3_max, 1e-2)
         self.vary_k3 = bool(vary_k3)
 
+        self.k3r_initial = self._safe_float(k3r_initial, None)
+        self.k3r_min = self._positive_bound(k3r_min, 1e-20)
+        self.k3r_max = self._positive_bound(k3r_max, 1e-2)
+        self.vary_k3r = bool(vary_k3r)
+
         try:
-            self.current_col = int(current_col) - 1 if current_col is not None else 0
+            self.current_col = int(current_col) - 1
         except Exception:
             self.current_col = 0
         try:
-            self.potential_col = int(potential_col) - 1 if potential_col is not None else 1
+            self.potential_col = int(potential_col) - 1
         except Exception:
             self.potential_col = 1
 
-        self.current_units = current_units
-
-        # Calculate f1 = F / (R * T)
-        try:
-            self.f1 = F_CONST / (self.gas_constant * self.temperature)
-        except Exception:
-            self.f1 = 38.92
-
-        # Reference potential correction vs RHE: E_corr = E_ref + (2.302585 * R * T / F) * pH
-        if ref_correction is not None and str(ref_correction).strip() != '':
-            try:
-                self.ref_correction = float(ref_correction)
-            except Exception:
-                self.ref_correction = 0.0
-        else:
-            try:
-                slope = 2.302585 * self.gas_constant * self.temperature / F_CONST
-            except Exception:
-                slope = 0.05916
-
-            ref_p = 0.0
-            if self.ref_potential is not None and str(self.ref_potential).strip() != '':
-                try:
-                    ref_p = float(self.ref_potential)
-                except Exception:
-                    ref_p = 0.0
-
-            ph_val = 0.0
-            if self.pH is not None and str(self.pH).strip() != '':
-                try:
-                    ph_val = float(self.pH)
-                except Exception:
-                    ph_val = 0.0
-
-            self.ref_correction = ref_p + (slope * ph_val)
+        self.f1 = F_CONST / (self.gas_constant * self.temperature)
+        self.ref_correction = self._reference_correction(ref_correction)
 
         self.result_model = None
         self.model_type = None
         self._raw = None
         self._parsed = False
+        self._fit_metadata = {}
 
         self._load_data()
         self._process_variables()
+
+    @staticmethod
+    def _safe_float(value, default=None):
+        try:
+            if value is None or str(value).strip() == "":
+                return default
+            val = float(value)
+            return val if np.isfinite(val) else default
+        except Exception:
+            return default
+
+    @staticmethod
+    def _positive_bound(value, default, floor=1e-30):
+        try:
+            val = float(value)
+            return max(val, floor) if np.isfinite(val) else default
+        except Exception:
+            return default
+
+    def _reference_correction(self, ref_correction):
+        supplied = self._safe_float(ref_correction, None)
+        if supplied is not None:
+            return supplied
+        ref_p = self._safe_float(self.ref_potential, 0.0)
+        ph_val = self._safe_float(self.pH, 0.0)
+        slope = 2.302585 * self.gas_constant * self.temperature / F_CONST
+        return ref_p + slope * ph_val
 
     def _load_data(self):
         if not (self.file_path and os.path.exists(self.file_path)):
             self._parsed = False
             return
-
         try:
-            sep = None if (self.delimiter == 'auto' or not self.delimiter) else self.delimiter
-            df = pd.read_csv(self.file_path, sep=sep, engine='python', comment='#', header=None)
-            max_idx = max(int(self.current_col), int(self.potential_col))
+            sep = None if self.delimiter in (None, "", "auto") else self.delimiter
+            df = pd.read_csv(self.file_path, sep=sep, engine="python", comment="#", header=None)
+            max_idx = max(self.current_col, self.potential_col)
             if df.shape[1] > max_idx:
-                cols = [int(self.current_col), int(self.potential_col)]
-                df2 = df.iloc[:, cols].apply(pd.to_numeric, errors='coerce')
+                data = df.iloc[:, [self.current_col, self.potential_col]]
             elif df.shape[1] >= 2:
-                df2 = df.iloc[:, :2].apply(pd.to_numeric, errors='coerce')
+                data = df.iloc[:, :2]
             else:
                 self._parsed = False
                 return
-
-            df2 = df2.dropna(how='any')
-            arr = df2.values
-            if arr.shape[0] < 2:
+            data = data.apply(pd.to_numeric, errors="coerce").dropna(how="any")
+            if len(data) < 2:
                 self._parsed = False
                 return
-
-            self._raw = arr
+            self._raw = data.to_numpy(dtype=float)
             self._parsed = True
         except Exception:
             self._parsed = False
 
     def _process_variables(self):
         if self._raw is None:
-            raise ValueError("No data loaded. Check uploaded file path and delimiter selection.")
+            raise ValueError("No data loaded. Check the file path, columns, and delimiter.")
+        current_raw = np.asarray(self._raw[:, 0], dtype=float)
+        potential_raw = np.asarray(self._raw[:, 1], dtype=float)
+        
+        area = self._safe_float(self.area_electrode, 1.0)
+        if area <= 0:
+            area = 1.0
+        self.area_electrode = area
+        
+        self.current_density = current_raw / area
+        self.current = self.current_density
+        self.potential = potential_raw - current_raw * self.ohmic_drop + self.ref_correction
+        
+        p_min = self.potential_min
+        p_max = self.potential_max
+        if p_min is not None and p_max is not None and p_min > p_max:
+            p_min, p_max = p_max, p_min
+            
+        mask = np.ones_like(self.potential, dtype=bool)
+        if p_min is not None:
+            mask &= (self.potential >= p_min)
+        if p_max is not None:
+            mask &= (self.potential <= p_max)
+            
+        if not np.all(mask):
+            self.potential = self.potential[mask]
+            self.current_density = self.current_density[mask]
+            self.current = self.current[mask]
 
-        dframe = self._raw
-        current_raw = np.asarray(dframe[:, 0], dtype=float)
-        potential_raw = np.asarray(dframe[:, 1], dtype=float)
+    @staticmethod
+    def _safe_exp(z):
+        return np.exp(np.clip(z, -700.0, 700.0))
 
-        self.current = current_raw
-        self.current_density = None
-        if self.area_electrode is not None and str(self.area_electrode).strip() != '':
+    @staticmethod
+    def _safe_log_bounds(lower, upper, floor=1e-30):
+        lo = max(float(lower), floor)
+        hi = max(float(upper), lo * (1.0 + 1e-12))
+        return float(np.log(lo)), float(np.log(hi))
+
+    @staticmethod
+    def _clip_initial_rate(value, lower, upper):
+        lo = max(float(lower), 1e-30)
+        hi = max(float(upper), lo * (1.0 + 1e-12))
+        if value is None or not np.isfinite(value) or value <= 0:
+            value = rnd(lo, hi)
+        return float(np.clip(value, lo, hi))
+
+    def _add_log_rate(self, params, name, initial, lower, upper, vary=True):
+        lo, hi = self._safe_log_bounds(lower, upper)
+        k0 = self._clip_initial_rate(initial, lower, upper)
+        params.add(f"log_{name}", value=np.log(k0), min=lo, max=hi, vary=bool(vary))
+        params.add(name, expr=f"exp(log_{name})")
+
+    @staticmethod
+    def _normalize_model_type(model_type):
+        if not model_type:
+            return "Volmer-Heyrovsky"
+        norm = str(model_type).strip().lower().replace("_", "-").replace(" ", "-")
+        if norm in {"volmer-tafel", "tafel-volmer", "vt", "tv", "her-volmer-tafel-fitting"}:
+            return "Volmer-Tafel"
+        if norm in {"full", "vht", "volmer-heyrovsky-tafel", "hydrogen-full-fitting", "her-volmer-heyrovsky-tafel-fitting"}:
+            return "Volmer-Heyrovsky-Tafel"
+        if norm in {"simplified", "vh", "volmer-heyrovsky", "her-simplified-fitting", "her-volmer-heyrovsky-fitting"}:
+            return "Volmer-Heyrovsky"
+        raise ValueError(
+            f"Unknown model_type '{model_type}'. Supported: 'Volmer-Heyrovsky', 'Volmer-Tafel', 'Volmer-Heyrovsky-Tafel'."
+        )
+
+    def _make_log_params(self, model_type):
+        params = Parameters()
+        self._add_log_rate(params, "k1", self.k1_initial, self.k1_min, self.k1_max, self.vary_k1)
+        self._add_log_rate(params, "k1r", self.k1r_initial, self.k1r_min, self.k1r_max, self.vary_k1r)
+
+        norm_model = self._normalize_model_type(model_type)
+
+        if norm_model == "Volmer-Heyrovsky":
+            self._add_log_rate(params, "k2", self.k2_initial, self.k2_min, self.k2_max, self.vary_k2)
+            self._add_log_rate(params, "k2r", self.k2r_initial, self.k2r_min, self.k2r_max, self.vary_k2r)
+        elif norm_model == "Volmer-Tafel":
+            self._add_log_rate(params, "k3", self.k3_initial, self.k3_min, self.k3_max, self.vary_k3)
+            self._add_log_rate(params, "k3r", self.k3r_initial, self.k3r_min, self.k3r_max, self.vary_k3r)
+        elif norm_model == "Volmer-Heyrovsky-Tafel":
+            self._add_log_rate(params, "k2", self.k2_initial, self.k2_min, self.k2_max, self.vary_k2)
+            self._add_log_rate(params, "k3", self.k3_initial, self.k3_min, self.k3_max, self.vary_k3)
+            params.add("k2r", expr="(k1*k2)/k1r")
+            params.add("k3r", expr="(k3*k1**2)/(k1r**2)")
+        else:
+            raise ValueError(f"Unknown model_type: {model_type}")
+
+        params.add(
+            "bbv",
+            value=float(np.clip(self.bbv_initial, self.bbv_min, self.bbv_max)),
+            min=self.bbv_min,
+            max=self.bbv_max,
+            vary=self.vary_bbv,
+        )
+        if norm_model in {"Volmer-Heyrovsky", "Volmer-Heyrovsky-Tafel"}:
+            params.add(
+                "bbh",
+                value=float(np.clip(self.bbh_initial, self.bbh_min, self.bbh_max)),
+                min=self.bbh_min,
+                max=self.bbh_max,
+                vary=self.vary_bbh,
+            )
+        return params
+
+    def _fit_weights(self, relative_error=0.03, current_noise=None):
+        current = np.asarray(self.current, dtype=float)
+        if relative_error is None or float(relative_error) < 0:
+            raise ValueError("relative_error must be non-negative.")
+        relative_error = float(relative_error)
+        if current_noise is None:
+            finite = np.abs(current[np.isfinite(current)])
+            scale = np.max(finite) if finite.size else 1.0
+            current_noise = max(1e-12, 1e-6 * scale)
+        current_noise = max(float(current_noise), 1e-30)
+        sigma = np.maximum(relative_error * np.abs(current), current_noise)
+        return 1.0 / sigma
+
+    def _invalid_prediction(self, x, scale):
+        return np.full_like(np.asarray(x, dtype=float), 1e6 * max(float(scale), 1e-12), dtype=float)
+    # Hydrogen coverage - Volmer-Heyrovsky mechanism
+    def _theta_volmer_heyrovsky(self, x, k1, k1r, k2, k2r, bbv, bbh, strict=True):
+        x = np.asarray(x, dtype=float)
+        u = self.f1 * x
+        denom = (
+            k1 * self._safe_exp(-bbv * u)
+            + self._safe_exp((1.0 - bbv) * u) * k1r
+            + k2 * self._safe_exp(-bbh * u)
+            + self._safe_exp((1.0 - bbh) * u) * k2r
+        )
+        num = (
+            k1 * self._safe_exp(-bbv * u)
+            + self._safe_exp((1.0 - bbh) * u) * k2r
+        )
+        if np.any(~np.isfinite(denom)) or np.any(np.abs(denom) < 1e-28):
+            if strict:
+                return None
+            return np.full_like(x, np.nan, dtype=float)
+        theta = num / denom
+        if np.any(~np.isfinite(theta)):
+            return None if strict else np.full_like(x, np.nan, dtype=float)
+        if strict and (np.any(theta < -1e-8) or np.any(theta > 1.0 + 1e-8)):
+            return None
+        return np.clip(theta, 0.0, 1.0)
+    
+    # Hydrogen coverage - Volmer-Tafel mechanism
+    def _theta_volmer_tafel(self, x, k1, k1r, k3, k3r, bbv, strict=True):
+        """Compute surface coverage for Volmer-Tafel mechanism using Lasia Eq. (97)-(100)."""
+        x = np.asarray(x, dtype=float)
+        u = self.f1 * x
+        if min(k1, k1r, k3, k3r) <= 0:
+            return None if strict else np.full_like(x, np.nan, dtype=float)
+
+        k1_fwd = k1 * self._safe_exp(-bbv * u)
+        k1_rev = k1r * self._safe_exp((1.0 - bbv) * u)
+
+        # Lasia Eq. (97):
+        # theta_H^2 (2 k_3 - 2 k_{-3}) + theta_H (4 k_{-3} + \vec{k}_1 + \overleftarrow{k}_{-1}) + (-\vec{k}_1 - 2 k_{-3}) = 0
+        # a theta^2 + b theta + c = 0
+        a = 2.0 * k3 - 2.0 * k3r
+        b = 4.0 * k3r + k1_fwd + k1_rev
+        c = -k1_fwd - 2.0 * k3r
+
+        if np.any(b <= 0):
+            return None if strict else np.full_like(x, np.nan, dtype=float)
+
+        theta = np.empty_like(x, dtype=float)
+        if abs(a) < 1e-20:
+            # When a = 0 (k3 == k3r), b*theta + c = 0 -> theta = -c/b (Lasia Eq. 100)
+            theta = -c / b
+        else:
+            arg = 4.0 * a * c / (b ** 2)
+            # Use Maclaurin expansion (Lasia Eq. 99-100) when |arg| < 1e-5 to prevent catastrophic cancellation:
+            # 1 - sqrt(1 - x) = x/2 + x^2/8 + ...
+            # -b/(2a) * [1 - sqrt(1 - x)] = -c/b * [1 + ac/b^2 + 2*(ac/b^2)^2]
+            small_mask = np.abs(arg) < 1e-5
+            if np.any(small_mask):
+                term = a * c[small_mask] / (b[small_mask] ** 2)
+                theta[small_mask] = (-c[small_mask] / b[small_mask]) * (1.0 + term + 2.0 * (term ** 2))
+            if np.any(~small_mask):
+                disc_term = 1.0 - arg[~small_mask]
+                disc_term = np.maximum(disc_term, 0.0)
+                theta[~small_mask] = (-b[~small_mask] / (2.0 * a)) * (1.0 - np.sqrt(disc_term))
+
+        if np.any(~np.isfinite(theta)):
+            return None if strict else np.full_like(x, np.nan, dtype=float)
+        if strict and (np.any(theta < -1e-8) or np.any(theta > 1.0 + 1e-8)):
+            return None
+        return np.clip(theta, 0.0, 1.0)
+
+    # Alias for Tafel-Volmer
+    _theta_Tafel_Volmer = _theta_volmer_tafel
+    
+    # Hydrogen coverage - Volmer-Heyrovsky-Tafel mechanism
+    def _theta_volmer_heyrovsky_tafel(self, x, k1, k1r, k2, k3, bbv, bbh, strict=True):
+        x = np.asarray(x, dtype=float)
+        u = self.f1 * x
+        if min(k1, k1r, k2, k3) <= 0:
+            return None
+
+        k2r = (k1 * k2) / k1r
+        k3r = (k3 * k1**2) / (k1r**2)
+        a = -2.0 * k3 + 2.0 * k3r
+        b = (
+            -self._safe_exp(-bbv * u) * k1
+            -self._safe_exp((1.0 - bbv) * u) * k1r
+            -k2 * self._safe_exp(-bbh * u)
+            -self._safe_exp((1.0 - bbh) * u) * k2r
+            -4.0 * k3r
+        )
+        c = (
+            k1 * self._safe_exp(-bbv * u)
+            + self._safe_exp((1.0 - bbh) * u) * k2r
+            + 2.0 * k3r
+        )
+        disc = b**2 - 4.0 * a * c
+        if np.any(~np.isfinite(disc)) or np.any(disc < -1e-12):
+            return None if strict else np.full_like(x, np.nan, dtype=float)
+        disc = np.maximum(disc, 0.0)
+
+        theta = np.empty_like(x, dtype=float)
+        small_a = np.abs(a) < 1e-20
+        if np.any(~small_a):
+            theta[~small_a] = (-b[~small_a] - np.sqrt(disc[~small_a])) / (2.0 * a)
+        if np.any(small_a):
+            if np.any(np.abs(b[small_a]) < 1e-28):
+                return None if strict else np.full_like(x, np.nan, dtype=float)
+            theta[small_a] = -c[small_a] / b[small_a]
+
+        if np.any(~np.isfinite(theta)):
+            return None if strict else np.full_like(x, np.nan, dtype=float)
+        if strict and (np.any(theta < -1e-8) or np.any(theta > 1.0 + 1e-8)):
+            return None
+        return np.clip(theta, 0.0, 1.0)
+        
+    # HER current density - Volmer-Heyrovsky mechanism
+    def _volmer_heyrovsky_current_density(self, x, k1, k1r, k2, k2r, bbv, bbh, invalid_scale):
+        x = np.asarray(x, dtype=float)
+        u = self.f1 * x
+        e_u = self._safe_exp(u)
+        e_shift = self._safe_exp((bbh - bbv) * u)
+        numerator = 2.0 * k1 * k2 * (1.0 - e_u**2) * self._safe_exp(-bbh * u)
+        denominator = k1 * e_shift + k2 + e_u * (k1r * e_shift + k2r)
+        if (
+            np.any(~np.isfinite(numerator))
+            or np.any(~np.isfinite(denominator))
+            or np.any(np.abs(denominator) < 1e-28)
+        ):
+            return self._invalid_prediction(x, invalid_scale)
+        out = -F_CONST * numerator / denominator
+        return out if np.all(np.isfinite(out)) else self._invalid_prediction(x, invalid_scale)
+    
+    # HER current density - Volmer-Heyrovsky-Tafel mechanism
+    def _volmer_heyrovsky_tafel_current_density(self, x, k1, k1r, k2, k3, bbv, bbh, invalid_scale):
+        x = np.asarray(x, dtype=float)
+        theta = self._theta_volmer_heyrovsky_tafel(x, k1, k1r, k2, k3, bbv, bbh, strict=True)
+        if theta is None:
+            return self._invalid_prediction(x, invalid_scale)
+
+        u = self.f1 * x
+        theta_empty = 1.0 - theta
+        k2r = (k1 * k2) / k1r
+        term1 = k1 * theta_empty * self._safe_exp(-bbv * u)
+        term2 = self._safe_exp((1.0 - bbh) * u) * k2r * theta_empty
+        term3 = self._safe_exp((1.0 - bbv) * u) * k1r * theta
+        term4 = k2 * theta * self._safe_exp(-bbh * u)
+        out = -F_CONST * (term1 - term3 + term4 - term2)
+        return out if np.all(np.isfinite(out)) else self._invalid_prediction(x, invalid_scale)
+    
+    # HER current density - Volmer-Tafel mechanism
+    def _volmer_tafel_current(self, x, k1, k1r, k3, k3r, bbv, invalid_scale):
+        x = np.asarray(x, dtype=float)
+        theta = self._theta_volmer_tafel(x, k1, k1r, k3, k3r, bbv, strict=True)
+        if theta is None:
+            return self._invalid_prediction(x, invalid_scale)
+
+        u = self.f1 * x
+        theta_empty = 1.0 - theta
+        volmer_rate = (
+            k1 * theta_empty * self._safe_exp(-bbv * u)
+            - self._safe_exp((1.0 - bbv) * u) * k1r * theta
+        )
+        tafel_rate = (
+            k3 * (theta**2) - k3r * theta_empty**2
+        )
+        current_volmer_tafel = (
+            -F_CONST * (2.0 * tafel_rate)
+        )
+        return current_volmer_tafel if np.all(np.isfinite(current_volmer_tafel)) else self._invalid_prediction(x, invalid_scale)
+
+    _current_volmer_tafel = _volmer_tafel_current
+    _tafel_volmer_current = _volmer_tafel_current
+
+    def fit_data(
+        self,
+        model_type="Volmer-Heyrovsky",
+        fitting_method="least_squares",
+        global_method="differential_evolution",
+        use_global_search=True,
+        n_starts=1,
+        relative_error=0.03,
+        current_noise=None,
+        max_nfev_global=30000,
+        max_nfev_local=20000,
+        robust_loss="soft_l1",
+        robust_f_scale=1.0,
+    ):
+        """Fit HER current-potential data.
+
+        Rate constants are fitted in log-space. ``differential_evolution`` is
+        used only to locate promising basins; bounded ``least_squares`` gives
+        the final local solution. Set ``use_global_search=False`` and increase
+        ``n_starts`` for faster random multi-start local fitting.
+        """
+        norm_model = self._normalize_model_type(model_type)
+
+        x_data = np.asarray(self.potential, dtype=float)
+        y_data = np.asarray(self.current, dtype=float)
+        if x_data.ndim != 1 or y_data.ndim != 1 or x_data.size != y_data.size:
+            raise ValueError("Potential and current must be one-dimensional arrays of equal length.")
+        if x_data.size < 3 or not np.all(np.isfinite(x_data)) or not np.all(np.isfinite(y_data)):
+            raise ValueError("At least three finite potential/current observations are required.")
+
+        invalid_scale = max(np.max(np.abs(y_data)), 1e-12)
+        weights = self._fit_weights(relative_error=relative_error, current_noise=current_noise)
+
+        if norm_model == "Volmer-Heyrovsky":
+            self.model_type = "HER_Volmer_Heyrovsky_Fitting"
+
+            def model_func(x, k1, k1r, k2, k2r, bbv, bbh):
+                return self._volmer_heyrovsky_current_density(x, k1, k1r, k2, k2r, bbv, bbh, invalid_scale)
+
+        elif norm_model == "Volmer-Tafel":
+            self.model_type = "HER_Volmer_Tafel_Fitting"
+
+            def model_func(x, k1, k1r, k3, k3r, bbv):
+                return self._volmer_tafel_current(x, k1, k1r, k3, k3r, bbv, invalid_scale)
+
+        else:
+            self.model_type = "Hydrogen_Full_Fitting"
+
+            def model_func(x, k1, k1r, k2, k3, bbv, bbh):
+                return self._volmer_heyrovsky_tafel_current_density(x, k1, k1r, k2, k3, bbv, bbh, invalid_scale)
+
+        her_model = Model(model_func, independent_vars=["x"])
+        candidates = []
+        n_starts = max(1, int(n_starts))
+
+        for _ in range(n_starts):
+            initial_params = self._make_log_params(norm_model)
+            local_start = initial_params
+
+            if use_global_search:
+                try:
+                    global_result = her_model.fit(
+                        y_data,
+                        initial_params,
+                        x=x_data,
+                        weights=weights,
+                        method=global_method,
+                        nan_policy="raise",
+                        max_nfev=int(max_nfev_global),
+                    )
+                    local_start = global_result.params
+                except Exception:
+                    # Retain the log-random start and permit the local fit to try it.
+                    local_start = initial_params
+
+            fit_kwargs = {}
+            if fitting_method == "least_squares":
+                fit_kwargs = {
+                    "fit_kws": {
+                        "x_scale": "jac",
+                        "loss": robust_loss,
+                        "f_scale": float(robust_f_scale),
+                    }
+                }
+
             try:
-                area_val = float(self.area_electrode)
-                if area_val > 0:
-                    self.current_density = current_raw / area_val
+                local_result = her_model.fit(
+                    y_data,
+                    local_start,
+                    x=x_data,
+                    weights=weights,
+                    method=fitting_method,
+                    nan_policy="raise",
+                    max_nfev=int(max_nfev_local),
+                    **fit_kwargs,
+                )
+                if np.isfinite(local_result.chisqr):
+                    candidates.append(local_result)
             except Exception:
-                pass
+                continue
 
-        # Apply Ohmic drop and Reference potential corrections
-        self.potential = potential_raw - (current_raw * float(self.ohmic_drop)) + float(self.ref_correction)
-
-    def fit_data(self, model_type='simplified', fitting_method='powell'):
-        f1_val = self.f1
-        f_val = F_CONST
-
-        def Theta_VH_func(x, k1, k1r, k2, k2r, bbv, bbh):
-            denom = (k1 / np.exp(bbv * f1_val * x) + np.exp((1 - bbv) * f1_val * x) * k1r +
-                     k2 / np.exp(bbh * f1_val * x) + np.exp((1 - bbh) * f1_val * x) * k2r)
-            num = (k1 / np.exp(bbv * f1_val * x) + np.exp((1 - bbh) * f1_val * x) * k2r)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                theta = np.where(denom != 0, num / denom, 0.5)
-            return theta, 1.0 - theta
-
-        def Theta_Total_func(x, k1, k1r, k2, k2r, k3, k3r, bbv, bbh):
-            k2r_calc = (k1 * k2) / (k1r + 1e-30)
-            k3r_calc = (k3 * (k1 ** 2)) / ((k1r ** 2) + 1e-30)
-            A1 = -2.0 * k3 + 2.0 * k3r_calc
-            B1 = (-np.exp((-bbv) * f1_val * x) * k1 - np.exp((1.0 - bbv) * f1_val * x) * k1r -
-                  k2 / np.exp(bbh * f1_val * x) - np.exp((1.0 - bbh) * f1_val * x) * k2r_calc - 4.0 * k3r_calc)
-            C1 = (k1 / np.exp(bbv * f1_val * x) + np.exp((1.0 - bbh) * f1_val * x) * k2r_calc + 2.0 * k3r_calc)
-
-            disc = B1 ** 2 - (4.0 * A1 * C1)
-            disc = np.where(disc < 0, 0.0, disc)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                theta = np.where(np.abs(A1) > 1e-30, (-B1 - np.sqrt(disc)) / (2.0 * A1), -C1 / (B1 + 1e-30))
-            theta = np.clip(theta, 0.0, 1.0)
-            return theta, 1.0 - theta
-
-        def HER_simplified_wrapper(x, k1, k1r, k2, k2r, bbv, bbh):
-            num = 2.0 * (k1 * k2 * (1.0 - np.exp(2.0 * f1_val * x))) * np.exp(-bbh * x * f1_val)
-            denom = (k1 * np.exp((bbh - bbv) * f1_val * x) + k2 +
-                     np.exp(f1_val * x) * (k1r * np.exp((bbh - bbv) * f1_val * x) + k2r))
-            with np.errstate(divide='ignore', invalid='ignore'):
-                vtotal = np.where(denom != 0, num / denom, 0.0)
-            return -f_val * vtotal
-
-        def Hydrogen_Full_wrapper(x, k1, k1r, k2, k2r, k3, k3r, bbv, bbh):
-            k2r_calc = (k1 * k2) / (k1r + 1e-30)
-            theta, theta2 = Theta_Total_func(x, k1, k1r, k2, k2r, k3, k3r, bbv, bbh)
-            term1 = (k1 * theta2) / np.exp(bbv * f1_val * x)
-            term2 = np.exp((1.0 - bbh) * f1_val * x) * k2r_calc * theta2
-            term3 = np.exp((1.0 - bbv) * f1_val * x) * k1r * theta
-            term4 = (k2 * theta) / np.exp(bbh * f1_val * x)
-            return -f_val * (term1 + term2 + term3 - term4)
-
-        if model_type.lower() == 'simplified':
-            self.model_type = 'HER_simplified_fitting'
-            model_func = HER_simplified_wrapper
-        elif model_type.lower() == 'full':
-            self.model_type = 'Hydrogen_Full_Fitting'
-            model_func = Hydrogen_Full_wrapper
-        else:
-            raise ValueError("model_type must be 'simplified' or 'full'")
-
-        HER_model = Model(model_func, independent_vars=['x'])
-
-        if self.model_type == 'HER_simplified_fitting':
-            k1_val = self.k1_initial if self.k1_initial is not None else rnd(self.k1_min, self.k1_max)
-            k1r_val = self.k1r_initial if self.k1r_initial is not None else rnd(self.k1r_min, self.k1r_max)
-            k2_val = self.k2_initial if self.k2_initial is not None else rnd(self.k2_min, self.k2_max)
-            k2r_val = self.k2r_initial if self.k2r_initial is not None else rnd(self.k2r_min, self.k2r_max)
-
-            params = create_params(
-                k1=dict(value=k1_val, min=self.k1_min, max=self.k1_max, vary=self.vary_k1),
-                k1r=dict(value=k1r_val, min=self.k1r_min, max=self.k1r_max, vary=self.vary_k1r),
-                k2=dict(value=k2_val, min=self.k2_min, max=self.k2_max, vary=self.vary_k2),
-                k2r=dict(value=k2r_val, min=self.k2r_min, max=self.k2r_max, vary=self.vary_k2r),
-                bbv=dict(value=self.bbv_initial, min=self.bbv_min, max=self.bbv_max, vary=self.vary_bbv),
-                bbh=dict(value=self.bbh_initial, min=self.bbh_min, max=self.bbh_max, vary=self.vary_bbh)
-            )
-        else:
-            k1_val = self.k1_initial if self.k1_initial is not None else rnd(self.k1_min, self.k1_max)
-            k1r_val = self.k1r_initial if self.k1r_initial is not None else rnd(self.k1r_min, self.k1r_max)
-            k2_val = self.k2_initial if self.k2_initial is not None else rnd(self.k2_min, self.k2_max)
-            k3_val = self.k3_initial if self.k3_initial is not None else rnd(self.k3_min, self.k3_max)
-
-            params = create_params(
-                k1=dict(value=k1_val, min=self.k1_min, max=self.k1_max, vary=self.vary_k1),
-                k1r=dict(value=k1r_val, min=self.k1r_min, max=self.k1r_max, vary=self.vary_k1r),
-                k2=dict(value=k2_val, min=self.k2_min, max=self.k2_max, vary=self.vary_k2),
-                k2r=dict(expr='(k1*k2)/k1r'),
-                k3=dict(value=k3_val, min=self.k3_min, max=self.k3_max, vary=self.vary_k3),
-                k3r=dict(expr='(k3*k1**2)/k1r**2'),
-                bbv=dict(value=self.bbv_initial, min=self.bbv_min, max=self.bbv_max, vary=self.vary_bbv),
-                bbh=dict(value=self.bbh_initial, min=self.bbh_min, max=self.bbh_max, vary=self.vary_bbh)
+        if not candidates:
+            raise RuntimeError(
+                "All fitting attempts failed. Check units, parameter ranges, "
+                "mechanism validity, and whether the experimental interval is "
+                "compatible with the steady-state HER model."
             )
 
-        params._asteval.symtable['x'] = self.potential
-        self.result_model = HER_model.fit(self.current, params, x=self.potential, method=fitting_method, nan_policy='omit')
+        self.result_model = min(candidates, key=lambda result: result.chisqr)
+        self._fit_metadata = {
+            "model_type": norm_model,
+            "fitting_method": fitting_method,
+            "global_method": global_method if use_global_search else None,
+            "use_global_search": bool(use_global_search),
+            "n_starts": n_starts,
+            "relative_error": float(relative_error),
+            "current_noise": current_noise,
+            "robust_loss": robust_loss if fitting_method == "least_squares" else None,
+        }
         return self.result_model
 
     def get_results(self):
         if self.result_model is None:
             return None
         return {
-            'result_model': self.result_model,
-            'model_type': self.model_type,
-            'parameters': self.result_model.params,
-            'fit_report': self.result_model.fit_report()
+            "result_model": self.result_model,
+            "model_type": self.model_type,
+            "parameters": self.result_model.params,
+            "fit_report": self.result_model.fit_report(),
+            "fit_metadata": dict(self._fit_metadata),
         }
 
-    def get_params_dict(self):
+    def get_params_dict(self, include_internal=False):
         if self.result_model is None:
             return None
         out = {}
-        for name, p in self.result_model.params.items():
+        for name, par in self.result_model.params.items():
+            if not include_internal and name.startswith("log_"):
+                continue
             try:
-                val = float(p.value)
-                out[name] = val if np.isfinite(val) else None
+                out[name] = float(par.value) if np.isfinite(par.value) else None
             except Exception:
-                out[name] = getattr(p, 'value', None)
+                out[name] = None
         return out
 
     def get_stats(self):
         if self.result_model is None:
             return None
-        res = self.result_model
-        # Compute R-squared
-        r_squared = None
-        try:
-            y_data = np.asarray(self.current)
-            y_fit = getattr(res, 'best_fit', None)
-            if y_fit is not None:
-                ss_res = np.sum((y_data - y_fit) ** 2)
-                ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
-                if ss_tot > 0:
-                    r_val = float(1.0 - (ss_res / (ss_tot + 1e-30)))
-                    r_squared = r_val if np.isfinite(r_val) else None
-        except Exception:
-            pass
+        result = self.result_model
+        y_data = np.asarray(self.current, dtype=float)
+        y_fit = np.asarray(result.best_fit, dtype=float)
+        ss_res = np.sum((y_data - y_fit) ** 2)
+        ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
+        r_squared = None if ss_tot <= 0 else float(1.0 - ss_res / ss_tot)
 
-        def _clean_stat(v):
-            if v is None:
-                return None
+        def clean_float(value):
             try:
-                val = float(v)
-                return val if np.isfinite(val) else None
+                value = float(value)
+                return value if np.isfinite(value) else None
             except Exception:
                 return None
 
-        def _clean_int(v):
-            if v is None:
-                return None
+        def clean_int(value):
             try:
-                return int(v)
+                return int(value)
             except Exception:
                 return None
 
         return {
-            'chisqr': _clean_stat(getattr(res, 'chisqr', None)),
-            'redchi': _clean_stat(getattr(res, 'redchi', None)),
-            'aic': _clean_stat(getattr(res, 'aic', None)),
-            'bic': _clean_stat(getattr(res, 'bic', None)),
-            'nfree': _clean_int(getattr(res, 'nfree', None)),
-            'r_squared': _clean_stat(r_squared),
-            'nvarys': _clean_int(getattr(res, 'nvarys', None)),
-            'ndata': _clean_int(getattr(res, 'ndata', len(self.current) if hasattr(self, 'current') else 0))
+            "chisqr": clean_float(getattr(result, "chisqr", None)),
+            "redchi": clean_float(getattr(result, "redchi", None)),
+            "aic": clean_float(getattr(result, "aic", None)),
+            "bic": clean_float(getattr(result, "bic", None)),
+            "nfree": clean_int(getattr(result, "nfree", None)),
+            "r_squared": clean_float(r_squared),
+            "nvarys": clean_int(getattr(result, "nvarys", None)),
+            "ndata": clean_int(getattr(result, "ndata", len(self.current))),
         }
 
     def compute_theta(self, x=None):
-        """Compute coverage (theta_H and empty sites 1-theta_H) using fitted params."""
+        """Compute fitted theta_H and empty-site coverage."""
         if self.result_model is None:
-            raise ValueError('No fit available to compute theta')
-
+            raise ValueError("No fit is available. Run fit_data() first.")
         params = self.result_model.params
-        def _val(n):
-            p = params.get(n)
-            return float(p.value) if p is not None else 0.0
+        x_arr = np.asarray(self.potential if x is None else x, dtype=float)
 
-        f1_val = getattr(self, 'f1', 38.92)
-        if x is None:
-            x_arr = np.asarray(self.potential)
+        def value(name, default=0.0):
+            return float(params[name].value) if name in params else default
+
+        k1 = value("k1")
+        k1r = value("k1r")
+        bbv = value("bbv", 0.5)
+
+        norm = self._normalize_model_type(self.model_type)
+        if norm == "Volmer-Tafel":
+            theta = self._theta_volmer_tafel(x_arr, k1, k1r, value("k3"), value("k3r"), bbv, strict=False)
+        elif norm == "Volmer-Heyrovsky-Tafel":
+            theta = self._theta_volmer_heyrovsky_tafel(x_arr, k1, k1r, value("k2"), value("k3"), bbv, value("bbh", 0.5), strict=False)
         else:
-            x_arr = np.asarray(x, dtype=float)
+            theta = self._theta_volmer_heyrovsky(x_arr, k1, k1r, value("k2"), value("k2r"), bbv, value("bbh", 0.5), strict=False)
 
-        k1 = _val('k1')
-        k1r = _val('k1r')
-        k2 = _val('k2')
-        k2r = _val('k2r')
-        bbv = _val('bbv')
-        bbh = _val('bbh')
-
-        model_type = getattr(self, 'model_type', '')
-        if 'full' in model_type.lower():
-            k3 = _val('k3')
-            k2r_calc = (k1 * k2) / (k1r + 1e-30)
-            k3r_calc = (k3 * (k1 ** 2)) / ((k1r ** 2) + 1e-30)
-            A1 = -2.0 * k3 + 2.0 * k3r_calc
-            B1 = (-np.exp((-bbv) * f1_val * x_arr) * k1 - np.exp((1.0 - bbv) * f1_val * x_arr) * k1r -
-                  k2 / np.exp(bbh * f1_val * x_arr) - np.exp((1.0 - bbh) * f1_val * x_arr) * k2r_calc - 4.0 * k3r_calc)
-            C1 = (k1 / np.exp(bbv * f1_val * x_arr) + np.exp((1.0 - bbh) * f1_val * x_arr) * k2r_calc + 2.0 * k3r_calc)
-            disc = B1 ** 2 - (4.0 * A1 * C1)
-            disc = np.where(disc < 0, 0.0, disc)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                theta = np.where(np.abs(A1) > 1e-30, (-B1 - np.sqrt(disc)) / (2.0 * A1), -C1 / (B1 + 1e-30))
-            theta = np.clip(theta, 0.0, 1.0)
-            return theta, 1.0 - theta
-        else:
-            denom = (k1 / np.exp(bbv * f1_val * x_arr) + np.exp((1.0 - bbv) * f1_val * x_arr) * k1r +
-                     k2 / np.exp(bbh * f1_val * x_arr) + np.exp((1.0 - bbh) * f1_val * x_arr) * k2r)
-            num = (k1 / np.exp(bbv * f1_val * x_arr) + np.exp((1.0 - bbh) * f1_val * x_arr) * k2r)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                theta = np.where(denom != 0, num / denom, 0.5)
-            theta = np.clip(theta, 0.0, 1.0)
-            return theta, 1.0 - theta
+        if theta is None or np.any(~np.isfinite(theta)):
+            raise InvalidModelState("Could not calculate a physical fitted coverage.")
+        return theta, 1.0 - theta
 
     def compute_decomposition(self, x=None):
-        """Compute Volmer and Heyrovsky partial reaction contributions."""
+        """Compute Volmer, Heyrovsky, or Tafel partial-current contributions."""
         if self.result_model is None:
-            raise ValueError('No fit available to compute decomposition')
-
+            raise ValueError("No fit is available. Run fit_data() first.")
         params = self.result_model.params
-        def _val(n):
-            p = params.get(n)
-            return float(p.value) if p is not None else 0.0
+        x_arr = np.asarray(self.potential if x is None else x, dtype=float)
 
-        f1_val = getattr(self, 'f1', 38.92)
-        f_val = F_CONST
-        if x is None:
-            x_arr = np.asarray(self.potential)
+        def value(name, default=0.0):
+            return float(params[name].value) if name in params else default
+
+        k1 = value("k1")
+        k1r = value("k1r")
+        bbv = value("bbv", 0.5)
+        theta, theta_empty = self.compute_theta(x_arr)
+        u = self.f1 * x_arr
+
+        volmer_rate = (
+            k1 * theta_empty * self._safe_exp(-bbv * u)
+            - self._safe_exp((1.0 - bbv) * u) * k1r * theta
+        )
+        norm = self._normalize_model_type(self.model_type)
+        if norm == "Volmer-Tafel":
+            k3 = value("k3")
+            k3r = value("k3r")
+            tafel_rate = k3 * (theta ** 2) - k3r * theta_empty
+            rate_volmer = log10(volmer_rate)
+            rate_tafel = log10(tafel_rate)
+            total=log10(2*tafel_rate)
+            return {
+                "x": x_arr,
+                "volmer": rate_volmer,
+                "tafel": rate_tafel,
+                "total": total,
+            }
         else:
-            x_arr = np.asarray(x, dtype=float)
+            k2 = value("k2")
+            k2r = value("k2r")
+            bbh = value("bbh", 0.5)
+            heyrovsky_rate = (
+                k2 * theta * self._safe_exp(-bbh * u)
+                - self._safe_exp((1.0 - bbh) * u) * k2r * theta_empty
+            )
+            rate_volmer = log10(volmer_rate)
+            rate_heyrovsky = log10(heyrovsky_rate)
+            total=log10(volmer_rate+heyrovsky_rate)
+            return {
+                "x": x_arr,
+                "volmer": rate_volmer,
+                "heyrovsky": rate_heyrovsky,
+                "total": total,
+            }
 
-        k1 = _val('k1')
-        k1r = _val('k1r')
-        k2 = _val('k2')
-        k2r = _val('k2r')
-        bbv = _val('bbv')
-        bbh = _val('bbh')
-
-        theta, theta2 = self.compute_theta(x=x_arr)
-
-        volmer_rate = (k1 * theta2) / np.exp(f1_val * bbv * x_arr) - np.exp(f1_val * (1.0 - bbv) * x_arr) * k1r * theta
-        heyrovsky_rate = -np.exp(f1_val * (1.0 - bbh) * x_arr) * k2r * theta2 + (k2 * theta) / np.exp(bbh * f1_val * x_arr)
-
-        # Convert to current (A)
-        i_volmer = -f_val * volmer_rate
-        i_heyrovsky = -f_val * heyrovsky_rate
-        i_total = i_volmer + i_heyrovsky
-
-        return {
-            'x': x_arr,
-            'volmer': i_volmer,
-            'heyrovsky': i_heyrovsky,
-            'total': i_total
-        }
-
-    def compute_tafel_slope(self, x=None, use_fitted=True, window_size=10, method='rolling'):
-        """Compute Tafel slope in mV/decade.
-
-        Implements rolling-window linear regression dV/d(log10|I|) matching hy2.py,
-        or numerical gradient when method='gradient'.
-        Returns (x_pot, slope_mV_per_dec).
-        """
-        if x is None:
-            x_arr = np.asarray(self.potential)
-        else:
-            x_arr = np.asarray(x, dtype=float)
-
-        I = None
+    def compute_tafel_slope(self, x=None, use_fitted=True, window_size=10, method="rolling", skip_initial=0):
+        """Compute local Tafel slope in mV decade^-1."""
+        x_arr = np.asarray(self.potential if x is None else x, dtype=float)
         if use_fitted and self.result_model is not None:
-            try:
-                fitted = getattr(self.result_model, 'best_fit', None)
-                if fitted is None:
-                    fitted = self.result_model.eval(x=self.potential)
-                I = np.asarray(fitted)
-            except Exception:
-                I = None
+            current = np.asarray(self.result_model.eval(x=x_arr), dtype=float)
+        else:
+            current = np.asarray(self.current, dtype=float)
 
-        if I is None:
-            I = np.asarray(self.current)
+        if x_arr.size != current.size:
+            raise ValueError("Potential and current arrays must have the same length.")
+            
+        skip = int(skip_initial)
+        if skip > 0 and x_arr.size > skip:
+            x_arr = x_arr[skip:]
+            current = current[skip:]
 
-        # Instead of cutting by current value, skip the first 55 points to match hy2.py
-        if len(x_arr) > 55 and len(I) > 55:
-            x_arr = x_arr[55:]
-            I = I[55:]
-
-        if method == 'rolling':
-            n = len(x_arr)
+        if method == "rolling":
+            n = x_arr.size
             win = max(3, min(int(window_size), n))
-            v1 = []
-            for i in range(n - win + 1):
-                sub_p = x_arr[i : i + win]
-                sub_c = np.abs(I[i : i + win]) + 1e-30
-                log_c = np.log10(sub_c)
+            output = []
+            for index in range(n - win + 1):
+                potential_window = x_arr[index:index + win]
+                current_window = np.abs(current[index:index + win]) + 1e-30
                 try:
-                    res = stats.linregress(log_c, sub_p)
-                    xm = np.mean(sub_p)
-                    slope_val = np.abs(res.slope)
-                    v1.append([xm, slope_val])
+                    regression = stats.linregress(np.log10(current_window), potential_window)
+                    output.append([np.mean(potential_window), abs(regression.slope) * 1000.0])
                 except Exception:
-                    pass
-            if len(v1) > 0:
-                return np.asarray(v1)
+                    continue
+            if output:
+                return np.asarray(output, dtype=float)
 
-        # Fallback to gradient method
-        eps = 1e-30
-        logI = np.log10(np.abs(I) + eps)
-        dx = np.gradient(x_arr)
-        dlogI = np.gradient(logI)
-        with np.errstate(divide='ignore', invalid='ignore'):
-            slope_V_per_dec = np.where(np.abs(dlogI) > 1e-30, dx / dlogI, 0.0)
-        slope_mV_per_dec = np.nan_to_num(np.abs(slope_V_per_dec * 1000.0), nan=0.0, posinf=0.0, neginf=0.0)
-        return x_arr, slope_mV_per_dec
+        log_current = np.log10(np.abs(current) + 1e-30)
+        dpotential = np.gradient(x_arr)
+        dlog_current = np.gradient(log_current)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            slope = np.where(np.abs(dlog_current) > 1e-30, dpotential / dlog_current, np.nan)
+        return x_arr, np.abs(np.nan_to_num(slope * 1000.0, nan=0.0, posinf=0.0, neginf=0.0))
+
+
+# Backward compatibility alias for legacy scripts and imports
+hydrogen_fitting = HydrogenFitting

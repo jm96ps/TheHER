@@ -1,5 +1,6 @@
 import os
 import io
+import math
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,13 +11,12 @@ from webapp.services.fitting_service import (
     render_plot,
     render_theta_plot,
     render_tafel_plot,
-    render_decomposition_plot,
     render_plot_data,
     render_theta_data,
     render_tafel_data,
-    render_decomposition_data,
     render_plots_zip,
-    build_fitter_from_request
+    build_fitter_from_request,
+    fit_options_from_request,
 )
 
 
@@ -67,17 +67,6 @@ def plot_tafel(request):
 
 
 @csrf_exempt
-def plot_decomposition(request):
-    if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
-    if request.POST.get('as') == 'json':
-        data = render_decomposition_data(request.POST, request.FILES)
-        return JsonResponse(data)
-    img = render_decomposition_plot(request.POST, request.FILES)
-    return HttpResponse(img, content_type='image/png')
-
-
-@csrf_exempt
 def fit_report(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
@@ -106,7 +95,7 @@ def load_sample(request):
             'pH': 14.0,
             'temperature': 298.15,
             'delimiter': 'auto',
-            'model_type': 'simplified',
+            'model_type': 'Volmer-Heyrovsky',
             'tafel_window': 10,
             'vary_bbv': 'false',
             'vary_bbh': 'false'
@@ -122,7 +111,7 @@ def load_sample(request):
             'pH': 14.0,
             'temperature': 298.15,
             'delimiter': 'auto',
-            'model_type': 'simplified',
+            'model_type': 'Volmer-Heyrovsky',
             'tafel_window': 10,
             'vary_bbv': 'false',
             'vary_bbh': 'false'
@@ -138,7 +127,7 @@ def load_sample(request):
             'pH': 14.0,
             'temperature': 298.15,
             'delimiter': 'auto',
-            'model_type': 'simplified',
+            'model_type': 'Volmer-Heyrovsky',
             'tafel_window': 10,
             'vary_bbv': 'false',
             'vary_bbh': 'false'
@@ -154,7 +143,7 @@ def load_sample(request):
             'pH': 14.0,
             'temperature': 298.15,
             'delimiter': 'auto',
-            'model_type': 'simplified',
+            'model_type': 'Volmer-Heyrovsky',
             'tafel_window': 10,
             'vary_bbv': 'false',
             'vary_bbh': 'false'
@@ -170,7 +159,7 @@ def load_sample(request):
             'pH': 14.0,
             'temperature': 298.15,
             'delimiter': 'auto',
-            'model_type': 'simplified',
+            'model_type': 'Volmer-Heyrovsky',
             'tafel_window': 10,
             'vary_bbv': 'false',
             'vary_bbh': 'false'
@@ -179,7 +168,9 @@ def load_sample(request):
 
     preset = sample_registry.get(sample_key, sample_registry['Pt_example.txt'])
     target_filename = preset['filename']
-    sample_file = os.path.join(settings.BASE_DIR, target_filename)
+    sample_file = os.path.join(settings.BASE_DIR, 'sample_data', target_filename)
+    if not os.path.exists(sample_file):
+        sample_file = os.path.join(settings.BASE_DIR, target_filename)
 
     content = ""
     if os.path.exists(sample_file):
@@ -212,21 +203,95 @@ def export_plots_zip(request):
 
 @csrf_exempt
 def fit_summary(request):
+    """Run fit and render summary page with enriched context."""
     if request.method == 'POST':
         res = run_fit(request.POST, request.FILES)
         if not res.get('success'):
             return JsonResponse(res, status=400)
+
         stats = res.get('stats', {})
         params = res.get('parameters', {})
+        params_details = res.get('parameters_details', {})
         n_points = res.get('n_points', 0)
         fit_report_text = res.get('fit_report', '')
+
+        # Build fit metadata from form values
+        fit_options = fit_options_from_request(request.POST)
+        fit_meta = {
+            'model_type': fit_options.get('model_type', '-'),
+            'fitting_method': fit_options.get('fitting_method', '-'),
+            'use_global_search': fit_options.get('use_global_search', False),
+            'global_method': fit_options.get('global_method', '-'),
+            'n_starts': fit_options.get('n_starts', '-'),
+            'relative_error': fit_options.get('relative_error', '-'),
+            'current_noise': fit_options.get('current_noise', None),
+            'robust_loss': fit_options.get('robust_loss', '-'),
+            'vary_bbv': request.POST.get('vary_bbv', 'false').lower() in ('true', '1', 'yes', 'on'),
+            'vary_bbh': request.POST.get('vary_bbh', 'false').lower() in ('true', '1', 'yes', 'on'),
+            'bbv': request.POST.get('bbv', '0.5'),
+            'bbh': request.POST.get('bbh', '0.5'),
+            'temperature': request.POST.get('temperature', '-'),
+            'pH': request.POST.get('pH', '-'),
+            'area_electrode': request.POST.get('area_electrode', '-'),
+            'ohmic_drop': request.POST.get('ohmic_drop', '-'),
+            'ref_potential': request.POST.get('ref_potential', '-'),
+        }
+
+        # Build identifiability alerts
+        PHYS_KEYS = ('k1', 'k1r', 'k2', 'k2r', 'k3', 'k3r', 'bbv', 'bbh')
+        alerts = []
+        for name in PHYS_KEYS:
+            det = params_details.get(name)
+            if not det:
+                continue
+            val = det.get('value')
+            mn = det.get('min')
+            mx = det.get('max')
+            stderr = det.get('stderr')
+            vary = det.get('vary', True)
+
+            if not vary:
+                continue  # fixed params are expected to have no stderr
+
+            if stderr is None:
+                alerts.append(
+                    f"\u2022 <strong>{name}</strong>: erro padrão indisponível — "
+                    "o parâmetro pode não ser identificado pelos dados."
+                )
+
+            if val is not None and mn is not None and mx is not None:
+                try:
+                    span = float(mx) - float(mn)
+                    if span > 0 and abs(float(val) - float(mn)) / span < 0.01:
+                        alerts.append(
+                            f"\u2022 <strong>{name}</strong>: valor próximo ao limite inferior ({mn}). "
+                            "Considere ampliar os limites ou verificar os dados."
+                        )
+                    elif span > 0 and abs(float(val) - float(mx)) / span < 0.01:
+                        alerts.append(
+                            f"\u2022 <strong>{name}</strong>: valor próximo ao limite superior ({mx}). "
+                            "Considere ampliar os limites ou verificar os dados."
+                        )
+                except (TypeError, ValueError):
+                    pass
+
         return render(request, 'fit_summary.html', {
             'stats': stats,
             'parameters': params,
+            'parameters_details': params_details,
+            'internal_parameters': res.get('internal_parameters', {}),
+            'internal_parameters_details': res.get('internal_parameters_details', {}),
             'n_points': n_points,
-            'fit_report': fit_report_text
+            'fit_report': fit_report_text,
+            'fit_meta': fit_meta,
+            'identifiability_alerts': alerts,
         })
-    return render(request, 'fit_summary.html', {'stats': {}, 'parameters': {}, 'n_points': 0})
+
+    return render(request, 'fit_summary.html', {
+        'stats': {}, 'parameters': {}, 'parameters_details': {},
+        'internal_parameters': {}, 'internal_parameters_details': {},
+        'n_points': 0, 'fit_meta': {}, 'identifiability_alerts': [],
+    })
 
 
 def docs(request):

@@ -35,20 +35,45 @@ If you wish to run the web application on your local machine instead of the live
 Ensure you have Python 3.8+ installed. It is highly recommended to use a virtual environment (`venv` or `conda`).
 
 ### 2. Installation
-Clone the repository and install the required dependencies:
+Clone the repository and install the dependencies:
 ```bash
 git clone https://github.com/jm96ps/TheHER.git
 cd TheHER
 pip install -r requirements.txt
+pip install -e .
 ```
 
-### 3. Run the Server
-Launch the Django web server locally:
+### 3. Option A: Run the Web Application Locally
+Launch the Django web server:
 ```bash
 python manage.py runserver
 ```
-
 Open your browser and navigate to: `http://localhost:8000`
+
+### 4. Option B: Use as a Python Library
+You can also use TheHER directly in Python scripts or Jupyter notebooks:
+```python
+from theher import HydrogenFitting
+
+fitter = HydrogenFitting(
+    file_path="sample_data/Pt_example.txt",
+    area_electrode=0.196,
+    ohmic_drop=6.05,
+    ref_potential=0.098,
+    pH=14.0,
+    current_col=2,
+    potential_col=1,
+)
+
+# Fit kinetic rates
+result = fitter.fit_data(model_type="simplified")
+print("Fitted rates:", fitter.get_params_dict())
+
+# Compute surface coverage & rolling Tafel slope
+theta_h, theta_empty = fitter.compute_theta()
+tafel_slope = fitter.compute_tafel_slope(window_size=10)
+```
+See [examples/quickstart_fitting.py](examples/quickstart_fitting.py) for a complete working demonstration.
 
 ---
 
@@ -85,6 +110,15 @@ The application models this using combinations of the following primary steps:
    \ce{2MH<-->[{k}_3][{k}_{-3}] H2 +2M}
    ```
 
+### Fitting Defaults and Model Properties
+- **Log-space fitting**: Rate constants are optimized as natural logarithms internally to ensure positivity and scale properly.
+- **Physical reporting**: Displayed `k` values are the physical rates obtained by exponentiation.
+- **Symmetry factors**: Volmer ($\beta_V$) and Heyrovsky ($\beta_H$) symmetry factors are fixed at 0.5 by default but can be optionally fitted.
+- **Local refinement**: The default local method is bounded `least_squares`.
+- **Global search**: A global differential evolution search is optional and recommended for difficult fits, though it is slower.
+- **Current weights**: Proper weighting requires experimental relative uncertainty and/or a noise floor.
+- **Derived rates**: In the full model, `k2r` and `k3r` are derived parameters determined by microscopic reversibility and should only be used when justified by the underlying mechanism.
+
 ---
 
 ## 📖 References & Citation
@@ -103,6 +137,22 @@ If you use this tool in your research, please consider citing it:
 ### Scientific Literature
 - Lasia, Andrzej. “Mechanism and Kinetics of the Hydrogen Evolution Reaction.” *International Journal of Hydrogen Energy* 44, no. 36 (2019): 19484–518. [10.1016/j.ijhydene.2019.05.183](https://doi.org/10.1016/j.ijhydene.2019.05.183)
 - van der Heijden et al. “Tafel Slope Plot as a Tool to Analyze Electrocatalytic Reactions.” *ACS Energy Letters* (2024). [10.1021/acsenergylett.4c00266](https://doi.org/10.1021/acsenergylett.4c00266)
+
+---
+
+## 🤖 AI Usage Disclosure
+
+**Tool Use:** This project was developed with the assistance of Generative AI tools, including Google Gemini, OpenAI ChatGPT, and GitHub Copilot.
+**Location of Use:** These tools were utilized in the generation of the software code, the drafting of documentation (including this README), and test scaffolding.
+**Nature and Scope of Assistance:** AI assistance was used for initial code generation, refactoring, debugging, and drafting documentation to improve overall clarity.
+**Human Verification:** The authors affirm that they take full responsibility for the accuracy, originality, and ethical/legal standards of all submitted materials. All AI-generated content (both code and text) has been thoroughly reviewed, modified, and validated by human team members who made all primary architectural and design decisions.
+
+---
+
+## 🤝 Contributing & Community
+- **Contributing**: Please review our [Contributing Guidelines](CONTRIBUTING.md) before submitting pull requests or opening issues.
+- **Code of Conduct**: All participants agree to adhere to our [Code of Conduct](CODE_OF_CONDUCT.md).
+- **Citation Metadata**: See [CITATION.cff](CITATION.cff) for machine-readable citation formats.
 
 ---
 

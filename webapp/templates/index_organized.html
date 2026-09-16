@@ -4,27 +4,62 @@
 {% block content %}
 <style>
   :root {
-    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
-    --hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --primary-gradient: linear-gradient(135deg, #065f46 0%, #0d9488 100%);
+    --emerald-dark: #064e3b;
+    --emerald-primary: #047857;
+    --emerald-light: #10b981;
+    --teal-dark: #0f766e;
+    --accent-amber: #d97706;
+    --accent-blue: #0284c7;
+    --card-shadow: 0 4px 6px -1px rgba(6, 78, 59, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+    --hover-shadow: 0 10px 15px -3px rgba(6, 78, 59, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
   body {
-    background-color: #f8fafc;
+    background-color: #f4fbf7;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   .app-card {
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #d1fae5;
     border-radius: 12px;
     box-shadow: var(--card-shadow);
     transition: all 0.2s ease;
   }
   .app-card:hover {
     box-shadow: var(--hover-shadow);
+    border-color: #a7f3d0;
+  }
+  .text-primary {
+    color: #047857 !important;
+  }
+  .bg-primary {
+    background-color: #047857 !important;
+  }
+  .border-primary {
+    border-color: #0d9488 !important;
+  }
+  .btn-primary {
+    background-color: #047857 !important;
+    border-color: #047857 !important;
+    color: #ffffff !important;
+  }
+  .btn-primary:hover, .btn-primary:focus {
+    background-color: #065f46 !important;
+    border-color: #065f46 !important;
+    color: #ffffff !important;
+  }
+  .btn-outline-primary {
+    color: #047857 !important;
+    border-color: #047857 !important;
+  }
+  .btn-outline-primary:hover, .btn-outline-primary:focus {
+    background-color: #047857 !important;
+    border-color: #047857 !important;
+    color: #ffffff !important;
   }
   .plot-container {
     background: #ffffff;
-    border: 1px solid #e2e8f0;
+    border: 1px solid #d1fae5;
     border-radius: 10px;
     padding: 12px;
     position: relative;
@@ -49,14 +84,14 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: #f1f5f9;
-    border: 2px dashed #cbd5e1;
+    background: #f0fdf4;
+    border: 2px dashed #a7f3d0;
     border-radius: 8px;
-    color: #64748b;
+    color: #065f46;
   }
   .stat-badge {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    background: #f0fdf4;
+    border: 1px solid #d1fae5;
     border-radius: 8px;
     padding: 8px 12px;
     text-align: center;
@@ -64,13 +99,13 @@
   .stat-badge .val {
     font-size: 1.15rem;
     font-weight: 700;
-    color: #1e293b;
+    color: #064e3b;
   }
   .stat-badge .lbl {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #64748b;
+    color: #047857;
     font-weight: 600;
   }
   .btn-gradient {
@@ -88,24 +123,29 @@
   .form-label {
     font-size: 0.82rem;
     font-weight: 600;
-    color: #334155;
+    color: #1e293b;
     margin-bottom: 3px;
   }
   .form-control-sm, .form-select-sm {
     border-radius: 6px;
     font-size: 0.85rem;
+    border-color: #cbd5e1;
+  }
+  .form-control-sm:focus, .form-select-sm:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 0.25rem rgba(13, 148, 136, 0.2);
   }
   .table-sm th {
     font-size: 0.8rem;
-    color: #475569;
+    color: #065f46;
   }
   .table-sm td {
     font-size: 0.85rem;
     vertical-align: middle;
   }
   .fit-report-box {
-    background: #0f172a;
-    color: #38bdf8;
+    background: #022c22;
+    color: #34d399;
     font-family: 'Courier New', Courier, monospace;
     font-size: 0.8rem;
     padding: 12px;
@@ -119,7 +159,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h3 class="fw-bold text-dark mb-0">HER Electrochemical Fitting Workspace</h3>
-      <p class="text-muted small mb-0">Non-linear kinetic modeling, rolling-window Tafel slope, surface coverage ($\theta$), and mechanism decomposition</p>
+      <p class="text-muted small mb-0">Non-linear kinetic modeling, rolling-window Tafel slope, and surface coverage ($\theta$)</p>
     </div>
     <div class="d-flex gap-2">
       <div class="dropdown">
@@ -137,6 +177,28 @@
       <button type="button" id="resetBtn" class="btn btn-sm btn-outline-secondary shadow-sm">
         <i class="bi bi-arrow-counterclockwise"></i> Reset
       </button>
+    </div>
+  </div>
+  <!-- Step-by-Step Guide -->
+  <div class="accordion mb-3 shadow-sm" id="guideAccordion">
+    <div class="accordion-item border-0 rounded">
+      <h2 class="accordion-header" id="guideHeading">
+        <button class="accordion-button collapsed fw-bold text-primary bg-white rounded" type="button" data-bs-toggle="collapse" data-bs-target="#guideCollapse" aria-expanded="false" aria-controls="guideCollapse">
+          <i class="bi bi-list-ol me-2"></i> Quick Start Guide (Step-by-Step)
+        </button>
+      </h2>
+      <div id="guideCollapse" class="accordion-collapse collapse" aria-labelledby="guideHeading" data-bs-parent="#guideAccordion">
+        <div class="accordion-body small bg-light">
+          <ol class="mb-0 ps-3">
+            <li class="mb-1"><strong>Upload Data:</strong> Load your LSV data (.txt, .csv) or pick an example dataset. Set the delimiter and temperature.</li>
+            <li class="mb-1"><strong>Set Window (Optional):</strong> Fit over the entire potential window first, then use <em>Potential Min/Max</em> to exclude very high potentials or onset values if needed.</li>
+            <li class="mb-1"><strong>Corrections:</strong> Ensure the geometric area, ohmic drop ($R_u$), reference potential, and pH are accurately provided.</li>
+            <li class="mb-1"><strong>Choose Model:</strong> Select the kinetic mechanism (Volmer-Heyrovsky, Volmer-Tafel, or full). Start with <em>Bounded least squares</em>.</li>
+            <li class="mb-1"><strong>Advanced Search (Optional):</strong> If the fit does not converge, try checking <em>Use global search before local refinement</em>.</li>
+            <li><strong>Analyze:</strong> Click <em>Run Kinetic Fitting & Analysis</em> to view the Polarization fit, Surface Coverage ($\theta_H$), and Tafel Slope plots.</li>
+          </ol>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -186,18 +248,36 @@
               <input name="temperature" id="tempInput" class="form-control form-control-sm" type="number" step="0.1" value="298.15" />
             </div>
           </div>
+          <div class="row g-2 mt-1">
+            <div class="col-6">
+              <label class="form-label">Potential Min (V vs RHE, optional) <i class="bi bi-info-circle-fill text-info ms-1" data-bs-toggle="tooltip" title="Tip: Start fitting over the entire potential window, then edit the interval to exclude very high potentials or, in other cases, the onset values."></i></label>
+              <input name="potential_min" id="potMinInput" class="form-control form-control-sm" type="number" step="any" placeholder="e.g. -0.5" />
+            </div>
+            <div class="col-6">
+              <label class="form-label">Potential Max (V vs RHE, optional)</label>
+              <input name="potential_max" id="potMaxInput" class="form-control form-control-sm" type="number" step="any" placeholder="e.g. -0.1" />
+            </div>
+          </div>
         </div>
 
         <!-- 2. Corrections & Electrochemical Parameters -->
         <div class="app-card p-3 mb-3">
           <h6 class="fw-bold mb-2 text-primary"><i class="bi bi-sliders"></i> 2. Electrochemical Corrections</h6>
+          <div class="row g-2 mb-2">
+            <div class="col-12">
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox" id="use_area_checkbox_org" checked>
+                <label class="form-check-label form-label" for="use_area_checkbox_org">Use electrode area (cm²)</label>
+              </div>
+              <input name="area_electrode" id="areaInput" class="form-control form-control-sm" type="number" step="0.0001" value="1.0" />
+              <div id="area_alert_org" class="alert alert-warning py-1 px-2 mt-1 mb-0" style="font-size: 0.75rem; display: none;">
+                <i class="bi bi-exclamation-triangle-fill"></i> Note: Area will default to 1 cm².
+              </div>
+            </div>
+          </div>
           
           <div class="row g-2">
-            <div class="col-6">
-              <label class="form-label">Electrode Area ($cm^2$)</label>
-              <input name="area_electrode" id="areaInput" class="form-control form-control-sm" type="number" step="0.0001" value="0.196" required />
-            </div>
-            <div class="col-6">
+            <div class="col-12">
               <label class="form-label">Ohmic Drop $R_u$ ($\Omega$)</label>
               <input name="ohmic_drop" id="ohmicInput" class="form-control form-control-sm" type="number" step="0.01" value="6.05" required />
             </div>
@@ -233,27 +313,30 @@
             <div class="col-6">
               <label class="form-label">Mechanism Model</label>
               <select name="model_type" id="modelSelect" class="form-select form-select-sm">
-                <option value="simplified" selected>Simplified (Volmer–Heyrovsky)</option>
-                <option value="full">Full (Volmer–Heyrovsky–Tafel)</option>
+                <option value="Volmer-Heyrovsky" selected>Volmer–Heyrovsky</option>
+                <option value="Volmer-Tafel">Volmer–Tafel</option>
+                <option value="Volmer-Heyrovsky-Tafel">Volmer–Heyrovsky–Tafel</option>
               </select>
             </div>
             <div class="col-6">
-              <label class="form-label">Fitting Method</label>
-              <select name="fitting_method" class="form-select form-select-sm">
-                <option value="powell" selected>Powell (Robust)</option>
-                <option value="nelder">Nelder-Mead (Simplex)</option>
+              <label class="form-label" for="fitting_method">Local refinement method</label>
+              <select id="fitting_method" name="fitting_method" class="form-select form-select-sm">
+                <option value="least_squares" selected>Bounded least squares &mdash; recommended</option>
+                <option value="powell">Powell &mdash; derivative-free local search</option>
+                <option value="nelder">Nelder&ndash;Mead &mdash; simplex, no derivatives</option>
+                <option value="leastsq">Levenberg&ndash;Marquardt &mdash; no native bounds</option>
               </select>
             </div>
           </div>
 
           <div class="row g-2 mt-1">
             <div class="col-6">
-              <label class="form-label">Tafel Rolling Window (pts)</label>
+              <label class="form-label">Tafel Rolling Window (pts) <i class="bi bi-info-circle-fill text-info ms-1" data-bs-toggle="tooltip" title="About the Tafel slope plot: the algorithm calculates the Tafel slope at each n points in your dataset (you can select the number of points in Tafel Rolling Window)."></i></label>
               <input name="tafel_window" id="tafelWindowInput" class="form-control form-control-sm" type="number" min="3" max="100" value="10" />
             </div>
             <div class="col-6">
-              <label class="form-label">Symmetry Coefficients</label>
-              <div class="form-text small mt-1">$\beta_v=0.5, \beta_h=0.5$ (Fixed by default in Advanced)</div>
+              <label class="form-label">Skip Initial Points for Tafel (pts)</label>
+              <input name="tafel_skip" id="tafelSkipInput" class="form-control form-control-sm" type="number" min="0" max="1000" value="0" />
             </div>
           </div>
 
@@ -272,54 +355,61 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr class="param-row" data-models="simplified,full">
-                      <td><strong>$k_1$</strong></td>
+                    <tr class="param-row" data-models="Volmer-Heyrovsky,Volmer-Tafel,Volmer-Heyrovsky-Tafel,simplified,full">
+                      <td><strong>$k_1$</strong> (mol cm<sup>-2</sup> s<sup>-1</sup>)</td>
                       <td><input name="k1_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k1_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k1_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
                       <td><select name="vary_k1" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-                    <tr class="param-row" data-models="simplified,full">
-                      <td><strong>$k_{1r}$</strong></td>
+                    <tr class="param-row" data-models="Volmer-Heyrovsky,Volmer-Tafel,Volmer-Heyrovsky-Tafel,simplified,full">
+                      <td><strong>$k_{1r}$</strong> (mol cm<sup>-2</sup> s<sup>-1</sup>)</td>
                       <td><input name="k1r_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k1r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k1r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
                       <td><select name="vary_k1r" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-                    <tr class="param-row" data-models="simplified,full">
-                      <td><strong>$k_2$</strong></td>
+                    <tr class="param-row" data-models="Volmer-Heyrovsky,Volmer-Heyrovsky-Tafel,simplified,full">
+                      <td><strong>$k_2$</strong> (mol cm<sup>-2</sup> s<sup>-1</sup>)</td>
                       <td><input name="k2_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k2_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k2_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
                       <td><select name="vary_k2" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-                    <tr class="param-row" data-models="simplified">
-                      <td><strong>$k_{2r}$</strong></td>
+                    <tr class="param-row" data-models="Volmer-Heyrovsky,simplified">
+                      <td><strong>$k_{2r}$</strong> (mol cm<sup>-2</sup> s<sup>-1</sup>)</td>
                       <td><input name="k2r_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k2r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k2r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
                       <td><select name="vary_k2r" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-                    <tr class="param-row" data-models="full">
-                      <td><strong>$k_3$</strong></td>
+                    <tr class="param-row" data-models="Volmer-Tafel,Volmer-Heyrovsky-Tafel,full">
+                      <td><strong>$k_3$</strong> (mol cm<sup>-2</sup> s<sup>-1</sup>)</td>
                       <td><input name="k3_init" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
                       <td><input name="k3_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
                       <td><input name="k3_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
                       <td><select name="vary_k3" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
                     </tr>
-                    <tr class="param-row" data-models="simplified,full">
+                    <tr class="param-row" data-models="Volmer-Tafel">
+                      <td><strong>$k_{3r}$</strong> (mol cm<sup>-2</sup> s<sup>-1</sup>)</td>
+                      <td><input name="k3r_initial" placeholder="Auto" class="form-control form-control-sm" type="number" step="any" /></td>
+                      <td><input name="k3r_min" class="form-control form-control-sm" type="number" step="any" value="1e-20"/></td>
+                      <td><input name="k3r_max" class="form-control form-control-sm" type="number" step="any" value="1e-2"/></td>
+                      <td><select name="vary_k3r" class="form-select form-select-sm"><option value="true" selected>True</option><option value="false">False</option></select></td>
+                    </tr>
+                    <tr class="param-row" data-models="Volmer-Heyrovsky,Volmer-Tafel,Volmer-Heyrovsky-Tafel,simplified,full">
                       <td><strong>$\beta_v$</strong></td>
                       <td><input name="bbv" class="form-control form-control-sm" type="number" step="0.01" value="0.5" /></td>
                       <td><input name="bbv_min" class="form-control form-control-sm" type="number" step="0.01" value="0.0"/></td>
                       <td><input name="bbv_max" class="form-control form-control-sm" type="number" step="0.01" value="1.0"/></td>
-                      <td><select name="vary_bbv" class="form-select form-select-sm"><option value="false" selected>False (Fixed)</option><option value="true">True (Vary)</option></select></td>
+                      <td><select name="vary_bbv" class="form-select form-select-sm"><option value="false" selected>Fixed (recommended)</option><option value="true">Vary &mdash; advanced</option></select></td>
                     </tr>
-                    <tr class="param-row" data-models="simplified,full">
+                    <tr class="param-row" data-models="Volmer-Heyrovsky,Volmer-Heyrovsky-Tafel,simplified,full">
                       <td><strong>$\beta_h$</strong></td>
                       <td><input name="bbh" class="form-control form-control-sm" type="number" step="0.01" value="0.5" /></td>
                       <td><input name="bbh_min" class="form-control form-control-sm" type="number" step="0.01" value="0.0"/></td>
                       <td><input name="bbh_max" class="form-control form-control-sm" type="number" step="0.01" value="1.0"/></td>
-                      <td><select name="vary_bbh" class="form-select form-select-sm"><option value="false" selected>False (Fixed)</option><option value="true">True (Vary)</option></select></td>
+                      <td><select name="vary_bbh" class="form-select form-select-sm"><option value="false" selected>Fixed (recommended)</option><option value="true">Vary &mdash; advanced</option></select></td>
                     </tr>
                   </tbody>
                 </table>
@@ -328,10 +418,112 @@
           </div>
         </div>
 
+        <!-- 4. Advanced Fitting Options -->
+        <div class="app-card p-3 mb-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0 text-primary"><i class="bi bi-sliders2"></i> 4. Advanced Fitting Options</h6>
+            <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFitOptions" aria-expanded="false">
+              <i class="bi bi-chevron-expand"></i> Expand
+            </button>
+          </div>
+          <div class="alert alert-info py-2 px-3 small mb-2">
+            <i class="bi bi-info-circle"></i>
+            <strong>Scientific note:</strong> Fitting $\beta_V$ and $\beta_H$ simultaneously with correlated kinetic rate constants
+            can reduce parameter identifiability. Keep symmetry factors fixed for the first fit and vary them
+            only if there is a clear physical justification.
+          </div>
+          <div class="collapse" id="advancedFitOptions">
+            <div class="border rounded p-3 bg-light">
+              <!-- Global search toggle -->
+              <div class="form-check form-switch mb-3">
+                <input
+                  id="use_global_search"
+                  name="use_global_search"
+                  class="form-check-input"
+                  type="checkbox"
+                >
+                <label class="form-check-label fw-semibold" for="use_global_search">
+                  Use global search before local refinement <i class="bi bi-info-circle-fill text-info ms-1" data-bs-toggle="tooltip" title="Tip: At first, try fitting without a global search method; if it doesn't converge, you can then adjust the Advanced Fitting Options."></i>
+                </label>
+                <div class="form-text">
+                  Slower, but recommended when rate constants are highly correlated
+                  or initial guesses are uncertain.
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label" for="global_method">Global search method</label>
+                  <select id="global_method" name="global_method" class="form-select form-select-sm">
+                    <option value="differential_evolution" selected>Differential evolution</option>
+                    <option value="powell">Powell</option>
+                    <option value="nelder">Nelder&ndash;Mead</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label" for="n_starts">Number of local starts</label>
+                  <input
+                    id="n_starts"
+                    name="n_starts"
+                    class="form-control form-control-sm"
+                    type="number"
+                    value="10"
+                    min="1"
+                    max="100"
+                    step="1"
+                  >
+                  <div class="form-text">Random multi-start in log-space.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label" for="relative_error">Relative current uncertainty</label>
+                  <input
+                    id="relative_error"
+                    name="relative_error"
+                    class="form-control form-control-sm"
+                    type="number"
+                    value="0.03"
+                    step="any"
+                  >
+                  <div class="form-text">E.g. 0.03 = 3% estimated relative uncertainty.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label" for="current_noise">Current noise floor (A)</label>
+                  <input
+                    id="current_noise"
+                    name="current_noise"
+                    class="form-control form-control-sm"
+                    type="number"
+                    placeholder="e.g. 1e-7"
+                    step="any"
+                  >
+                  <div class="form-text">Smallest reliable absolute current variation for your potentiostat.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label" for="robust_loss">Robust loss function</label>
+                  <select id="robust_loss" name="robust_loss" class="form-select form-select-sm">
+                    <option value="soft_l1" selected>soft_l1 &mdash; recommended</option>
+                    <option value="linear">linear &mdash; ordinary least squares</option>
+                    <option value="huber">Huber</option>
+                    <option value="cauchy">Cauchy</option>
+                    <option value="arctan">arctan</option>
+                  </select>
+                </div>
+              </div><!-- /row -->
+            </div><!-- /border rounded -->
+          </div><!-- /collapse -->
+        </div>
+
         <!-- Action Button Panel -->
         <div class="d-grid gap-2 mb-3">
           <button type="submit" id="runFitBtn" class="btn btn-gradient py-2 shadow">
             <i class="bi bi-play-circle-fill"></i> Run Kinetic Fitting & Analysis
+          </button>
+          <button type="button" id="stopFitBtn" class="btn btn-danger py-2 shadow" style="display: none;">
+            <i class="bi bi-stop-circle-fill"></i> Stop Fitting
           </button>
         </div>
       </form>
@@ -345,7 +537,7 @@
         <div class="col-md-6">
           <div class="plot-container h-100">
             <div class="d-flex justify-content-between align-items-center mb-1">
-              <strong class="small text-dark"><i class="bi bi-graph-up text-primary"></i> Polarization Fit ($I$ vs $E$)</strong>
+              <strong class="small text-dark"><i class="bi bi-graph-up text-primary"></i> Polarization Fit ($I$ vs $E$) <i class="bi bi-info-circle-fill text-info ms-1" data-bs-toggle="tooltip" title="Obs: The fitting counts only the HER kinetic model (ignoring the concentration gradient). Besides, non-kinetic effects such as bubble formation could cause deviations from the theoretical model."></i></strong>
               <button class="btn btn-link btn-sm p-0 text-decoration-none" onclick="zoomPlot('plot')"><i class="bi bi-arrows-fullscreen"></i></button>
             </div>
             <div id="plotHolder" class="plot-placeholder">
@@ -385,6 +577,8 @@
             <img id="tafelThumb" alt="Tafel Slope" class="plot-img" onclick="zoomPlot('tafelThumb')" />
           </div>
         </div>
+
+
 
 
       </div>
@@ -491,6 +685,16 @@
   ;(function(){
     const form = document.getElementById('fitForm')
     const runBtn = document.getElementById('runFitBtn')
+
+    const useAreaCheckboxOrg = document.getElementById('use_area_checkbox_org')
+    const areaInputOrg = document.getElementById('areaInput')
+    const areaAlertOrg = document.getElementById('area_alert_org')
+    if (useAreaCheckboxOrg && areaInputOrg) {
+      useAreaCheckboxOrg.addEventListener('change', (e) => {
+        areaInputOrg.disabled = !e.target.checked;
+        if (areaAlertOrg) areaAlertOrg.style.display = e.target.checked ? 'none' : 'block';
+      });
+    }
     const statusAlert = document.getElementById('statusAlert')
     const modelSelect = document.getElementById('modelSelect')
     const loadSampleBtn = document.getElementById('loadSampleBtn')
@@ -524,11 +728,13 @@
 
     function updateParamVisibility(){
       try{
-        const m = (modelSelect && modelSelect.value) ? modelSelect.value : 'simplified'
+        let m = (modelSelect && modelSelect.value) ? modelSelect.value : 'Volmer-Heyrovsky'
+        if (m === 'simplified') m = 'Volmer-Heyrovsky'
+        if (m === 'full') m = 'Volmer-Heyrovsky-Tafel'
         document.querySelectorAll('.param-row').forEach(r => {
           const models = (r.getAttribute('data-models')||'').split(',').map(s=>s.trim()).filter(Boolean)
           if(models.length === 0) { r.style.display = '' ; return }
-          r.style.display = models.includes(m) ? '' : 'none'
+          r.style.display = (models.includes(m) || (m === 'Volmer-Heyrovsky' && models.includes('simplified')) || (m === 'Volmer-Heyrovsky-Tafel' && models.includes('full'))) ? '' : 'none'
         })
       }catch(e){}
     }
@@ -556,8 +762,12 @@
             document.getElementById('refPotInput').value = data.defaults.ref_potential !== undefined ? data.defaults.ref_potential : 0.098
             document.getElementById('phInput').value = data.defaults.pH !== undefined ? data.defaults.pH : 14.0
             document.getElementById('tafelWindowInput').value = data.defaults.tafel_window || 10
+            document.getElementById('tafelSkipInput').value = data.defaults.tafel_skip || 55
             if (modelSelect && data.defaults.model_type) {
-              modelSelect.value = data.defaults.model_type
+              let mt = data.defaults.model_type
+              if (mt === 'simplified') mt = 'Volmer-Heyrovsky'
+              if (mt === 'full') mt = 'Volmer-Heyrovsky-Tafel'
+              modelSelect.value = mt
               updateParamVisibility()
             }
           }
@@ -595,17 +805,37 @@
       }
     })
 
+    let currentAbortController = null;
+
+    const stopFitBtn = document.getElementById('stopFitBtn')
+    if (stopFitBtn) {
+      stopFitBtn.addEventListener('click', () => {
+        if (currentAbortController) {
+          currentAbortController.abort()
+        }
+      })
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault()
       runBtn.disabled = true
       runBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Fitting Kinetic Equations...'
+      
+      if (stopFitBtn) stopFitBtn.style.display = 'block'
+      
       statusAlert.className = 'alert alert-info py-2 small'
       statusAlert.textContent = 'Optimizing rate constants and computing coverage & Tafel slopes...'
       statusAlert.style.display = 'block'
 
+      currentAbortController = new AbortController()
+
       try {
         const fd = new FormData(form)
-        const fitRes = await fetch('/fit', { method: 'POST', body: fd })
+        const fitRes = await fetch('/fit', { 
+          method: 'POST', 
+          body: fd,
+          signal: currentAbortController.signal
+        })
         const fitJson = await fitRes.json()
 
         if (!fitJson.success) {
@@ -613,6 +843,7 @@
           statusAlert.textContent = 'Fitting Failed: ' + (fitJson.error || 'Unknown error occurred')
           runBtn.disabled = false
           runBtn.innerHTML = '<i class="bi bi-play-circle-fill"></i> Run Kinetic Fitting & Analysis'
+          if (stopFitBtn) stopFitBtn.style.display = 'none'
           return
         }
 
@@ -638,36 +869,45 @@
         const params = fitJson.parameters || {}
         const details = fitJson.parameters_details || {}
         for (const [k, v] of Object.entries(params)) {
+          if (k.startsWith('log_')) continue; // Exclude internal optimizer variables
           const det = details[k] || {}
           const valStr = (typeof v === 'number') ? v.toExponential(4) : String(v)
           const errStr = (det.stderr !== null && det.stderr !== undefined) ? '± ' + det.stderr.toExponential(2) : '—'
-          const varyBadge = det.vary === false ? '<span class="badge bg-secondary">Fixed</span>' : '<span class="badge bg-primary">Fitted</span>'
+          let varyBadge = '<span class="badge bg-secondary">Fixed</span>'
+          if (det.status === 'Derived') {
+            varyBadge = '<span class="badge bg-info text-dark">Derived</span>'
+          } else if (det.status === 'Fitted' || det.vary === true) {
+            varyBadge = '<span class="badge bg-primary">Fitted</span>'
+          }
+          let label = k;
+          if (k.startsWith('k')) {
+            label = `${k} <span style="font-size: 0.8em; font-weight: normal">(mol cm<sup>-2</sup> s<sup>-1</sup>)</span>`;
+          }
           const tr = document.createElement('tr')
-          tr.innerHTML = `<td><strong>${k}</strong></td><td class="text-primary font-monospace">${valStr}</td><td class="text-muted font-monospace">${errStr}</td><td>${varyBadge}</td>`
+          tr.innerHTML = `<td><strong>${label}</strong></td><td class="text-primary font-monospace">${valStr}</td><td class="text-muted font-monospace">${errStr}</td><td>${varyBadge}</td>`
           paramsTbody.appendChild(tr)
         }
 
         fitReportText.textContent = fitJson.fit_report || 'No detailed fit report available.'
         resultsCard.style.display = 'block'
 
-        // Fetch Plots Concurrently
-        const fetchPlot = async (url, imgEl, holderEl) => {
-          try {
-            const r = await fetch(url, { method: 'POST', body: fd })
-            if (r.ok) {
-              const blob = await r.blob()
-              imgEl.src = URL.createObjectURL(blob)
-              imgEl.style.display = 'block'
-              holderEl.style.display = 'none'
-            }
-          } catch(e){}
+        if (fitJson.plots) {
+          if (fitJson.plots.polarization) {
+            plotImg.src = 'data:image/png;base64,' + fitJson.plots.polarization
+            plotImg.style.display = 'block'
+            plotHolder.style.display = 'none'
+          }
+          if (fitJson.plots.theta) {
+            thetaImg.src = 'data:image/png;base64,' + fitJson.plots.theta
+            thetaImg.style.display = 'block'
+            thetaHolder.style.display = 'none'
+          }
+          if (fitJson.plots.tafel) {
+            tafelImg.src = 'data:image/png;base64,' + fitJson.plots.tafel
+            tafelImg.style.display = 'block'
+            tafelHolder.style.display = 'none'
+          }
         }
-
-        await Promise.all([
-          fetchPlot('/plot', plotImg, plotHolder),
-          fetchPlot('/plot_theta', thetaImg, thetaHolder),
-          fetchPlot('/plot_tafel', tafelImg, tafelHolder)
-        ])
 
         // Configure Export Handlers
         downloadZipBtn.onclick = async () => {
@@ -699,12 +939,25 @@
         }
 
       } catch (err) {
-        statusAlert.className = 'alert alert-danger py-2 small'
-        statusAlert.textContent = 'Error: ' + (err.message || err)
+        if (err.name === 'AbortError') {
+          statusAlert.className = 'alert alert-warning py-2 small'
+          statusAlert.textContent = 'Fitting was stopped by user.'
+        } else {
+          statusAlert.className = 'alert alert-danger py-2 small'
+          statusAlert.textContent = 'Error: ' + (err.message || err)
+        }
       } finally {
         runBtn.disabled = false
         runBtn.innerHTML = '<i class="bi bi-play-circle-fill"></i> Run Kinetic Fitting & Analysis'
+        if (stopFitBtn) stopFitBtn.style.display = 'none'
+        currentAbortController = null
       }
+    })
+    
+    // Initialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
     })
   })()
 </script>

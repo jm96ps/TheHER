@@ -1,23 +1,19 @@
-django>=4.2
-
-dj-database-url==1.0.0
-django>=4.2,<5
+# Web Framework & Deployment
+django>=4.2,<5.0
+dj-database-url>=1.0.0
 gunicorn>=21.2.0
 whitenoise>=6.0
-dj-database-url>=1.0.0
-
-numpy>=1.26.2
-pandas>=2.1.4
-scipy>=1.11.4
-matplotlib>=3.8.2
-lmfit>=1.2.2
-plotly>=5.16.0
-
-python-dotenv>=1.0.0
 psycopg2-binary>=2.9.6
-pytest>=7.0.0
+python-dotenv>=1.0.0
 werkzeug>=3.0.0
 
-# Optional / dev
-# ipython
-scipy==1.11.4
+# Scientific Computing & Data Processing
+numpy>=1.26.0
+pandas>=2.1.0
+scipy>=1.11.4
+lmfit>=1.2.2
+matplotlib>=3.8.0
+plotly>=5.16.0
+
+# Testing & Development
+pytest>=7.0.0

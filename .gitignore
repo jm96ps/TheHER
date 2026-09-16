@@ -1,11 +1,61 @@
-.env
+# Python & Bytecode
 __pycache__/
-*.pyc
-.venv/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+.env
+.venv
 venv/
 ENV/
 env/
+env.bak/
+venv.bak/
+
+# Testing & Coverage
 .pytest_cache/
-/*.egg-info/
-dist/
-build/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Django local database & static
+*.sqlite3
+db.sqlite3
+staticfiles/
+
+# Generated Outputs & Temporary Files
+*.backup
+*.bak
+out_*.png
+*.json
+outputs/*
+uploads/*
+!uploads/.gitkeep
+webapp/uploads/*
+!webapp/uploads/.gitkeep
+notes/*.txt
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

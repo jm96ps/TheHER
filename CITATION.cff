@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+title: "TheHER: Kinetic Fitting and Analysis Framework for the Hydrogen Evolution Reaction"
+version: 1.0.0
+date-released: 2026-09-08
+authors:
+  - family-names: "Silva"
+    given-names: "James Mario"
+    affiliation: "University of São Paulo (USP)"
+    email: "jamesmario@usp.br"
+repository-code: "https://github.com/jm96ps/TheHER"
+url: "https://theher.onrender.com/"
+license: "MIT"
+keywords:
+  - electrochemistry
+  - "hydrogen evolution reaction"
+  - "kinetic fitting"
+  - "Tafel analysis"
+  - "surface coverage"
+  - Python

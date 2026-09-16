@@ -9,28 +9,28 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Run tests or Django check
+          pip install -e .
+      - name: Run pytest test suite
         run: |
-          if [ -d "tests" ] || [ -f "pytest.ini" ] || ls | grep -E "test_" >/dev/null 2>&1; then
-            pytest -q
-          else
-            python manage.py check
-          fi
+          pytest -v
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: ${{ secrets.RENDER_API_KEY && secrets.RENDER_SERVICE_ID }}
+    if: ${{ github.ref == 'refs/heads/main' && secrets.RENDER_API_KEY && secrets.RENDER_SERVICE_ID }}
     steps:
       - name: Trigger Render deploy
         run: |

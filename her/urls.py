@@ -9,7 +9,6 @@ urlpatterns = [
     path('plot', views.plot, name='plot'),
     path('plot_theta', views.plot_theta, name='plot_theta'),
     path('plot_tafel', views.plot_tafel, name='plot_tafel'),
-    path('plot_decomposition', views.plot_decomposition, name='plot_decomposition'),
     path('fit_report', views.fit_report, name='fit_report'),
     path('load_sample', views.load_sample, name='load_sample'),
     path('export_plots_zip', views.export_plots_zip, name='export_plots_zip'),

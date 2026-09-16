@@ -9,12 +9,32 @@
       <div class="col-md-8">
         <div class="card mb-3">
           <div class="card-body">
-            <h6 class="card-title">HER Models</h6>
-            <p class="small mb-1">Simplified (Volmer–Heyrovsky) and Full (Volmer–Heyrovsky–Tafel).</p>
-            <div class="small">
-              <div>Volmer: $$\ce{H2O + e- + M <-->[{k1}][{k1r}] MH + OH-}$$</div>
-              <div>Heyrovsky: $$\ce{H2O + MH + e- <-->[{k2}][{k2r}] H2 + OH-}$$</div>
-              <div>Tafel (full): $$\ce{2MH <-->[{k3}][{k3r}] H2 + 2M}$$</div>
+            <h6 class="card-title mb-3">HER mechanisms</h6>
+            <div class="row">
+              <div class="col-md-6 border-end">
+                <p class="small mb-2 text-center fw-bold fst-italic text-primary">Reaction in acidic media</p>
+                <div class="small text-center">
+                  <div><span class="text-muted">Global reaction:</span><br>$$\ce{2H+ + 2e- <=> H2}$$</div>
+                  <div class="mt-2 text-muted text-decoration-underline">Volmer Step</div>
+                  <div>$$\ce{H+ + M + e- <-->[{k1}][{k1r}] MH}$$</div>
+                  <div class="mt-2 text-muted text-decoration-underline">Heyrovsky Step</div>
+                  <div>$$\ce{H+ + MH + e- <-->[{k2}][{k2r}] H2 + M}$$</div>
+                  <div class="mt-2 text-muted text-decoration-underline">Tafel Step</div>
+                  <div>$$\ce{2MH <-->[{k3}][{k3r}] H2 + 2M}$$</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <p class="small mb-2 text-center fw-bold fst-italic text-success">Reaction in alkaline media</p>
+                <div class="small text-center lh-sm">
+                  <div><span class="text-muted">Global reaction:</span><br>$$\ce{2H2O + 2e- <=> H2 + 2OH-}$$</div>
+                  <div class="mt-2 text-muted text-decoration-underline">Volmer Step</div>
+                  <div>$$\ce{H2O + M + e- <-->[{k1}][{k1r}] MH + OH-}$$</div>
+                  <div class="mt-2 text-muted text-decoration-underline">Heyrovsky Step</div>
+                  <div>$$\ce{H2O + MH + e- <-->[{k2}][{k2r}] M + H2 + OH-}$$</div>
+                  <div class="mt-2 text-muted text-decoration-underline">Tafel Step</div>
+                  <div>$$\ce{2MH <-->[{k3}][{k3r}] H2 + 2M}$$</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -31,10 +51,14 @@
                 <tr><td><code>k1</code></td><td>Forward rate constant (Volmer)</td><td>$1\times10^{-12}$ – $1\times10^{-2}\ \mathrm{mol\,cm^{-2}\,s^{-1}}$</td></tr>
                 <tr><td><code>k1r</code></td><td>Reverse rate constant (Volmer)</td><td>$1\times10^{-12}$ – $1\times10^{-2}\ \mathrm{mol\,cm^{-2}\,s^{-1}}$</td></tr>
                 <tr><td><code>k2</code></td><td>Forward rate constant (Heyrovsky)</td><td>$1\times10^{-12}$ – $1\times10^{-2}\ \mathrm{mol\,cm^{-2}\,s^{-1}}$</td></tr>
-                <tr><td><code>k2r</code></td><td>Reverse rate constant (Heyrovsky)</td><td>Often computed from other rates</td></tr>
-                <tr><td><code>k3</code></td><td>Tafel recombination rate (full model)</td><td>$1\times10^{-14}$ – $1\times10^{-4}$</td></tr>
+                <tr><td><code>k2r<sup>*</sup></code></td><td>Reverse rate constant (Heyrovsky)</td><td>$1\times10^{-12}$ – $1\times10^{-2}\ \mathrm{mol\,cm^{-2}\,s^{-1}}$</td></tr>
+                <tr><td><code>k3</code></td><td>Foward rate constant (Tafel)</td><td>$1\times10^{-14}$ – $1\times10^{-4}\ \mathrm{mol\,cm^{-2}\,s^{-1}}$</td></tr>
+                <tr><td><code>k3r<sup>*</sup></code></td><td>Reverse rate constant (Tafel)</td><td>$1\times10^{-14}$ – $1\times10^{-4}\ \mathrm{mol\,cm^{-2}\,s^{-1}}$</td></tr>
               </tbody>
             </table>
+            <p class="small text-muted"><sup>*</sup>k2r and k3r are calculated from the others rate constants in Volmer-Heyrovsky-Tafel model: <br></br>
+              $$\ce{k2r = k1 * k2 / k1r}$$ $$\ce{k3r = k1^2 * k3 / k1r^2}$$ 
+            </p>
 
             <h6 class="mt-3">Symmetry factors</h6>
             <table class="table table-sm">

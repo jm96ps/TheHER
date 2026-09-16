@@ -14,9 +14,9 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background-color: #064e3b;">
   <div class="container-fluid">
-    <a class="navbar-brand" href="#">TheHER</a>
+    <a class="navbar-brand fw-bold" href="#"><i class="bi bi-activity me-1"></i> TheHER</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbars" aria-controls="navbars" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -26,12 +26,100 @@
         <!-- Summary link removed per request -->
         <li class="nav-item"><a class="nav-link" href="/docs">Docs</a></li>
       </ul>
+      <button class="btn btn-sm btn-outline-light rounded-pill" id="themeToggleBtn" title="Toggle Dracula Dark Mode">
+        <i class="bi bi-moon-stars-fill"></i>
+      </button>
     </div>
   </div>
 </nav>
+
+<style>
+  /* Dracula Theme Overrides */
+  [data-bs-theme="dark"] {
+    --bs-body-bg: #282a36;
+    --bs-body-color: #f8f8f2;
+    --bs-primary: #bd93f9;
+    --bs-primary-rgb: 189, 147, 249;
+    --bs-secondary: #6272a4;
+    --bs-success: #50fa7b;
+    --bs-info: #8be9fd;
+    --bs-warning: #f1fa8c;
+    --bs-danger: #ff5555;
+    --bs-light: #f8f8f2;
+    --bs-dark: #282a36;
+    --bs-border-color: #44475a;
+    --bs-border-color-translucent: rgba(68, 71, 90, 0.5);
+    
+    --bs-card-bg: #282a36;
+    --bs-card-cap-bg: #44475a;
+    --bs-card-border-color: #44475a;
+    --bs-secondary-bg: #44475a;
+    --bs-tertiary-bg: #44475a;
+    --bs-heading-color: #f8f8f2;
+    --bs-text-muted: #6272a4 !important;
+    
+    --bs-form-control-bg: #44475a;
+    --bs-form-control-color: #f8f8f2;
+    --bs-form-control-border-color: #6272a4;
+    --bs-form-select-bg: #44475a;
+    --bs-form-select-color: #f8f8f2;
+    --bs-form-select-border-color: #6272a4;
+    --bs-form-select-indicator-color: #f8f8f2;
+    --bs-form-invalid-border-color: #ff5555;
+    
+    --bs-table-bg: #282a36;
+    --bs-table-color: #f8f8f2;
+    --bs-table-striped-bg: #44475a;
+    
+    /* Variables for index_organized.html custom styles */
+    --primary-gradient: linear-gradient(135deg, #bd93f9 0%, #ff79c6 100%);
+    --emerald-dark: #bd93f9;
+    --emerald-primary: #ff79c6;
+    --emerald-light: #ffb86c;
+  }
+  
+  [data-bs-theme="dark"] body {
+    background-color: #282a36 !important;
+    color: #f8f8f2 !important;
+  }
+  [data-bs-theme="dark"] .app-card {
+    background-color: #282a36 !important;
+    border-color: #44475a !important;
+  }
+  [data-bs-theme="dark"] .bg-light,
+  [data-bs-theme="dark"] .alert-light {
+    background-color: #44475a !important;
+    color: #f8f8f2 !important;
+    border-color: #6272a4 !important;
+  }
+  [data-bs-theme="dark"] .text-dark,
+  [data-bs-theme="dark"] .form-label,
+  [data-bs-theme="dark"] .text-muted,
+  [data-bs-theme="dark"] .small {
+    color: #f8f8f2 !important;
+  }
+  [data-bs-theme="dark"] .accordion-button {
+    background-color: #44475a;
+    color: #f8f8f2;
+  }
+  [data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: #6272a4;
+    color: #f8f8f2;
+  }
+  [data-bs-theme="dark"] .btn-primary {
+    background-color: #bd93f9;
+    border-color: #bd93f9;
+    color: #282a36;
+  }
+  [data-bs-theme="dark"] .btn-gradient {
+    background: linear-gradient(135deg, #bd93f9 0%, #ff79c6 100%);
+    border: none;
+    color: #282a36;
+  }
+</style>
 <div class="container-fluid">
   <!-- Author banner -->
-  <div class="alert alert-light border-0 shadow-sm mt-3 mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+  <div class="alert alert-light border-0 shadow-sm mt-3 mb-3" style="background: linear-gradient(135deg, #064e3b 0%, #0d9488 100%); color: white;">
     <div class="row align-items-center">
       <div class="col-md-8">
         <h5 class="mb-1"><i class="bi bi-person-circle"></i> TheHER - Hydrogen Evolution Reaction Analysis</h5>
@@ -65,6 +153,33 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 });
+  // Dark Mode Toggle Logic
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const icon = themeToggleBtn.querySelector('i');
+  
+  // Apply saved theme on load
+  const currentTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-bs-theme', currentTheme);
+  updateIcon(currentTheme);
+
+  themeToggleBtn.addEventListener('click', () => {
+    let newTheme = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-bs-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateIcon(newTheme);
+  });
+
+  function updateIcon(theme) {
+    if (theme === 'dark') {
+      icon.classList.remove('bi-moon-stars-fill');
+      icon.classList.add('bi-sun-fill');
+      themeToggleBtn.classList.replace('btn-outline-light', 'btn-warning');
+    } else {
+      icon.classList.remove('bi-sun-fill');
+      icon.classList.add('bi-moon-stars-fill');
+      themeToggleBtn.classList.replace('btn-warning', 'btn-outline-light');
+    }
+  }
 </script>
 </body>
 </html>

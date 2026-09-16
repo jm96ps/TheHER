@@ -1,67 +1,289 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Fit Summary</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ENjdO4Dr2bkBIFxQpeoYz1FQ7847/6bQZ9er5qD5mQmY1wq0nLMwNLD69Npy4HI+" crossorigin="anonymous">
-  <link rel="stylesheet" href="/static/static_old/assets/css/main.css">
-  <style>
-    .param-card { padding:.6rem; }
-    .muted { color:#666; }
-  </style>
-</head>
-<body>
-  <div class="container py-4">
-    <header class="mb-3">
-      <h2 class="mb-0">Fit Summary</h2>
-      <p class="muted">Basic statistics and parameter values for the last fit.</p>
-    </header>
+{% extends 'her/dashboard/base_dashboard.html' %}
+{% load static %}
 
-    <div class="row">
-      <div class="col-md-5">
-        <div class="card mb-3 p-3">
-          <h5>Statistics</h5>
-          <table class="table table-sm mt-2">
-            <tbody>
-              <tr><th>Chi-square</th><td>{{ stats.chisqr }}</td></tr>
-              <tr><th>Reduced chi-square</th><td>{{ stats.redchi }}</td></tr>
-              <tr><th>AIC</th><td>{{ stats.aic }}</td></tr>
-              <tr><th>BIC</th><td>{{ stats.bic }}</td></tr>
-              <tr><th>Free params</th><td>{{ stats.nfree }}</td></tr>
-              <tr><th>Number of points</th><td>{{ n_points }}</td></tr>
-            </tbody>
-          </table>
+{% block content %}
+<style>
+  .fit-report-box {
+    background: #0f172a;
+    color: #38bdf8;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.78rem;
+    padding: 12px;
+    border-radius: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .status-fitted   { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+  .status-fixed    { background: #f1f5f9; color: #475569; border: 1px solid #94a3b8; }
+  .status-derived  { background: #ede9fe; color: #5b21b6; border: 1px solid #7c3aed; }
+  .status-badge    { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+  .alert-identif   { background: #fff7ed; border: 1px solid #f97316; border-radius: 8px; padding: 10px 14px; font-size: 0.82rem; }
+  .meta-table th   { font-size: 0.8rem; color: #64748b; width: 55%; }
+  .meta-table td   { font-size: 0.85rem; font-weight: 600; }
+  .stat-badge      { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; text-align: center; }
+  .stat-badge .val { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+  .stat-badge .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
+</style>
+
+<div class="container-fluid px-3 px-lg-4 py-3">
+
+  <!-- Page header -->
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+      <h4 class="fw-bold mb-0">&#x1F4CB; Detailed Kinetic Fit Summary</h4>
+      <p class="text-muted small mb-0">Physical rate constants, fit statistics, metadata and identifiability alerts</p>
+    </div>
+    <a href="/" class="btn btn-sm btn-outline-primary shadow-sm">
+      <i class="bi bi-arrow-left"></i> Back to Workspace
+    </a>
+  </div>
+
+  <!-- ── Stat badges ── -->
+  <div class="row g-2 mb-3">
+    <div class="col-6 col-md-3">
+      <div class="stat-badge">
+        <div class="val">{{ stats.r_squared|default:"-" }}</div>
+        <div class="lbl">R&sup2; Goodness</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-badge">
+        <div class="val">{{ stats.redchi|default:"-" }}</div>
+        <div class="lbl">Reduced &chi;&sup2;</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-badge">
+        <div class="val">{{ stats.aic|default:"-" }}</div>
+        <div class="lbl">AIC</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-badge">
+        <div class="val">{{ n_points|default:"-" }}</div>
+        <div class="lbl">Data Points</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- ── LEFT: Parameters ── -->
+    <div class="col-lg-7">
+
+      <!-- Identifiability alerts -->
+      {% if identifiability_alerts %}
+      <div class="alert-identif mb-3">
+        <strong><i class="bi bi-exclamation-triangle-fill text-warning"></i> Identifiability Alerts</strong>
+        <ul class="mb-0 mt-1 ps-3">
+          {% for alert in identifiability_alerts %}
+          <li>{{ alert|safe }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+
+      <!-- Physical kinetic parameters table -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-bold py-2">
+          <i class="bi bi-table text-primary"></i> Optimized Kinetic Rate Constants
+          <span class="badge bg-light text-muted ms-2" style="font-size:0.72rem;">physical units</span>
         </div>
-
-        <div class="card p-3">
-          <h5>Parameters</h5>
-          <div class="row row-cols-1 row-cols-md-2 g-2 mt-2">
-            {% for k,v in parameters.items() %}
-            <div class="col">
-              <div class="param-card border rounded">
-                <strong>{{ k }}</strong>
-                <div class="muted">{{ v }}</div>
-              </div>
-            </div>
-            {% endfor %}
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Parameter</th>
+                  <th>Fitted value</th>
+                  <th>Std. error (&plusmn;)</th>
+                  <th>Min</th>
+                  <th>Max</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for key, det in parameters_details.items %}
+                  {% if not key|slice:":4" == "log_" %}
+                  <tr>
+                    <td class="font-monospace fw-bold">{{ key }}</td>
+                    <td class="font-monospace text-primary">
+                      {% if det.value is not None %}{{ det.value }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td class="font-monospace text-muted">
+                      {% if det.stderr %}
+                        &plusmn; {{ det.stderr }}
+                      {% else %}
+                        <span class="text-warning" title="Standard error unavailable">n/a</span>
+                      {% endif %}
+                    </td>
+                    <td class="font-monospace text-muted small">
+                      {% if det.min is not None %}{{ det.min }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td class="font-monospace text-muted small">
+                      {% if det.max is not None %}{{ det.max }}{% else %}&mdash;{% endif %}
+                    </td>
+                    <td>
+                      {% if det.status == "Derived" %}
+                        <span class="status-badge status-derived">Derived</span>
+                      {% elif det.status == "Fitted" or det.vary %}
+                        <span class="status-badge status-fitted">Fitted</span>
+                      {% else %}
+                        <span class="status-badge status-fixed">Fixed</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <div class="col-md-7">
-        <h5>Plots</h5>
-        <p class="muted">Click an image to open in a new tab.</p>
-        <div class="d-flex gap-3 flex-wrap">
-          <a href="#" onclick="openImage('/plot')"><img src="/plot" alt="fit" class="img-fluid" style="max-width:360px;"/></a>
-          <a href="#" onclick="openImage('/plot_theta')"><img src="/plot_theta" alt="theta" class="img-fluid" style="max-width:360px;"/></a>
-          <a href="#" onclick="openImage('/plot_tafel')"><img src="/plot_tafel" alt="tafel" class="img-fluid" style="max-width:360px;"/></a>
+      <!-- Numeric diagnostics (log_k etc.) — collapsible -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+          <span class="fw-bold small"><i class="bi bi-code-square text-secondary"></i> Numerical Diagnostics (internal log-space parameters)</span>
+          <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#diagCollapse">Show / Hide</button>
+        </div>
+        <div class="collapse" id="diagCollapse">
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-sm table-striped align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Parameter</th><th>Value</th><th>Expression</th><th>Varies</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for key, det in internal_parameters_details.items %}
+                    <tr>
+                      <td class="font-monospace small">{{ key }}</td>
+                      <td class="font-monospace small text-muted">{{ det.value|default:"&mdash;" }}</td>
+                      <td class="font-monospace small text-secondary">{{ det.expr|default:"&mdash;" }}</td>
+                      <td>{% if det.vary %}<span class="badge bg-primary">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                    </tr>
+                  {% empty %}
+                    {% for key, det in parameters_details.items %}
+                      {% if key|slice:":4" == "log_" %}
+                      <tr>
+                        <td class="font-monospace small">{{ key }}</td>
+                        <td class="font-monospace small text-muted">{{ det.value|default:"&mdash;" }}</td>
+                        <td class="font-monospace small text-secondary">{{ det.expr|default:"&mdash;" }}</td>
+                        <td>{% if det.vary %}<span class="badge bg-primary">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                      </tr>
+                      {% endif %}
+                    {% endfor %}
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
-  <script>
-    function openImage(path){ window.open(path, '_blank'); }
-  </script>
-</body>
-</html>
+
+      <!-- lmfit fit report -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom py-2 d-flex justify-content-between align-items-center">
+          <span class="fw-bold small"><i class="bi bi-terminal text-secondary"></i> Detailed lmfit Fit Report</span>
+          <button class="btn btn-xs btn-outline-secondary py-0 px-2" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#reportCollapse">Show / Hide</button>
+        </div>
+        <div class="collapse show" id="reportCollapse">
+          <div class="card-body p-2">
+            <pre class="fit-report-box mb-0">{{ fit_report|default:"No fit report available." }}</pre>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /col-lg-7 -->
+
+    <!-- ── RIGHT: Metadata + Stats ── -->
+    <div class="col-lg-5">
+
+      <!-- Fit metadata card -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-bold py-2">
+          <i class="bi bi-info-circle text-info"></i> Fit Metadata
+          <span class="badge bg-info bg-opacity-10 text-info ms-2" style="font-size:0.7rem;">reproducibility</span>
+        </div>
+        <div class="card-body p-2">
+          <table class="table table-sm meta-table mb-0">
+            <tbody>
+              <tr><th>Mechanism</th><td>{{ fit_meta.model_type|default:"&mdash;" }}</td></tr>
+              <tr><th>Local method</th><td><code>{{ fit_meta.fitting_method|default:"&mdash;" }}</code></td></tr>
+              <tr>
+                <th>Global search</th>
+                <td>
+                  {% if fit_meta.use_global_search %}
+                    <span class="badge bg-success">Yes &mdash; {{ fit_meta.global_method|default:"&mdash;" }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">No</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr><th>Local starts (n_starts)</th><td>{{ fit_meta.n_starts|default:"&mdash;" }}</td></tr>
+              <tr><th>Relative uncertainty</th><td>{{ fit_meta.relative_error|default:"&mdash;" }}</td></tr>
+              <tr>
+                <th>Noise floor (A)</th>
+                <td>{{ fit_meta.current_noise|default:"not provided" }}</td>
+              </tr>
+              <tr><th>Robust loss function</th><td><code>{{ fit_meta.robust_loss|default:"&mdash;" }}</code></td></tr>
+              <tr>
+                <th>&beta;<sub>V</sub> (Volmer)</th>
+                <td>
+                  {% if fit_meta.vary_bbv %}
+                    <span class="badge bg-warning text-dark">Fitted</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Fixed at {{ fit_meta.bbv|default:"0.5" }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr>
+                <th>&beta;<sub>H</sub> (Heyrovsky)</th>
+                <td>
+                  {% if fit_meta.vary_bbh %}
+                    <span class="badge bg-warning text-dark">Fitted</span>
+                  {% else %}
+                    <span class="badge bg-secondary">Fixed at {{ fit_meta.bbh|default:"0.5" }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+              <tr class="table-light"><td colspan="2" class="fw-semibold text-muted small pt-2">Experimental conditions</td></tr>
+              <tr><th>Temperature (K)</th><td>{{ fit_meta.temperature|default:"&mdash;" }}</td></tr>
+              <tr><th>pH</th><td>{{ fit_meta.pH|default:"&mdash;" }}</td></tr>
+              <tr><th>Electrode area (cm&sup2;)</th><td>{{ fit_meta.area_electrode|default:"&mdash;" }}</td></tr>
+              <tr><th>Uncompensated resistance R<sub>u</sub> (&Omega;)</th><td>{{ fit_meta.ohmic_drop|default:"&mdash;" }}</td></tr>
+              <tr><th>Reference potential (V vs SHE)</th><td>{{ fit_meta.ref_potential|default:"&mdash;" }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Statistics card -->
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-header bg-white border-bottom fw-bold py-2">
+          <i class="bi bi-bar-chart-line text-success"></i> Goodness-of-Fit Statistics
+        </div>
+        <div class="card-body p-2">
+          <table class="table table-sm meta-table mb-0">
+            <tbody>
+              <tr><th>Chi-squared (&chi;&sup2;)</th><td class="font-monospace">{{ stats.chisqr|default:"&mdash;" }}</td></tr>
+              <tr><th>Reduced &chi;&sup2;</th><td class="font-monospace">{{ stats.redchi|default:"&mdash;" }}</td></tr>
+              <tr><th>R&sup2;</th><td class="font-monospace">{{ stats.r_squared|default:"&mdash;" }}</td></tr>
+              <tr><th>AIC</th><td class="font-monospace">{{ stats.aic|default:"&mdash;" }}</td></tr>
+              <tr><th>BIC</th><td class="font-monospace">{{ stats.bic|default:"&mdash;" }}</td></tr>
+              <tr><th>Free parameters</th><td>{{ stats.nfree|default:"&mdash;" }}</td></tr>
+              <tr><th>Data points</th><td>{{ n_points|default:"&mdash;" }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /col-lg-5 -->
+
+  </div><!-- /row -->
+</div>
+{% endblock %}

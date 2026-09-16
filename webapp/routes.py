@@ -63,8 +63,20 @@ def fit_summary():
     if not res.get('success'):
         return jsonify(res), 400
 
-    # stats and params come from run_fit
     stats = res.get('stats', {})
     params = res.get('parameters', {})
+    params_details = res.get('parameters_details', {})
+    internal_params = res.get('internal_parameters', {})
+    internal_details = res.get('internal_parameters_details', {})
     n_points = res.get('n_points', 0)
-    return render_template('fit_summary.html', stats=stats, parameters=params, n_points=n_points)
+    fit_report = res.get('fit_report', '')
+    return render_template(
+        'fit_summary.html',
+        stats=stats,
+        parameters=params,
+        parameters_details=params_details,
+        internal_parameters=internal_params,
+        internal_parameters_details=internal_details,
+        n_points=n_points,
+        fit_report=fit_report,
+    )

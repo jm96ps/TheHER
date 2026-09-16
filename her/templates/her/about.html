@@ -2,16 +2,30 @@
 
 {% block content %}
 <div class="container mt-4">
-  <div class="card">
-    <div class="card-body">
-      <h2>About the Author</h2>
-      <p>This project was developed and maintained by James Mario.</p>
-      <ul>
-        <li><strong>Contact:</strong> <a href="mailto:jamesmario@usp.br">jamesmario@usp.br</a></li>
-        <li><strong>Status:</strong> Active Development</li>
-        <li><strong>Last updated:</strong> January 2026</li>
-      </ul>
-      <p>See the project README for more details and usage instructions.</p>
+  <div class="row justify-content-center">
+    <div class="col-md-8">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4 text-center">
+          <h3 class="fw-bold mb-3">About the Author</h3>
+          <p class="text-muted">This project is developed and maintained by <strong>James Mario</strong>.</p>
+          
+          <ul class="list-unstyled mb-4 text-start d-inline-block">
+            <li class="mb-2"><i class="bi bi-envelope-fill text-primary me-2"></i><strong>Contact:</strong> <a href="mailto:jamesmario@usp.br" class="text-decoration-none">jamesmario@usp.br</a></li>
+            <li class="mb-2"><i class="bi bi-activity text-success me-2"></i><strong>Status:</strong> Active Development</li>
+            <li class="mb-2"><i class="bi bi-calendar-event-fill text-info me-2"></i><strong>Last updated:</strong> September 2026</li>
+          </ul>
+          
+          <div class="p-4 bg-light rounded-3 border mb-4">
+            <h5 class="fw-bold mb-3">Support the Project ☕</h5>
+            <p class="mb-3 text-muted small">If you find this HER fitting tool helpful for your research or daily work, consider supporting its continued development!</p>
+            <a href="https://buymeacoffee.com/jm96ps" target="_blank" class="btn btn-warning fw-bold text-dark rounded-pill px-4 py-2 shadow-sm" style="background-color: #FFDD00; border-color: #FFDD00;">
+              <i class="bi bi-cup-hot-fill me-2"></i> Buy me a coffee
+            </a>
+          </div>
+
+          <p class="small text-muted mb-0">See the project README for more details and usage instructions.</p>
+        </div>
+      </div>
     </div>
   </div>
 </div>
