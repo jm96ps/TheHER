@@ -350,16 +350,17 @@ class HydrogenFitting:
 
     def _invalid_prediction(self, x, scale):
         return np.full_like(np.asarray(x, dtype=float), 1e6 * max(float(scale), 1e-12), dtype=float)
-"""
-    Description of the kinetic parameters:
-    k1 and k1r are the foward and backward rate constants of the Volmer step (electrochemical adsorption step), respectively;
-    k2 and k2r are the foward and backward rate constants of the Heyrovsky step (electrochemical desorption step), respectively;
-    k3 and k3r are the foward and backward rate constant of the Tafel step (chemical desorption step), respectively;
-    bbv and bbh are the transfer coeficients of the Volmer and Heyrovsky steps, respectively.
-"""
+    """
+        Description of the kinetic parameters:
+        k1 and k1r are the foward and backward rate constants of the Volmer step (electrochemical adsorption step), respectively;
+        k2 and k2r are the foward and backward rate constants of the Heyrovsky step (electrochemical desorption step), respectively;
+        k3 and k3r are the foward and backward rate constant of the Tafel step (chemical desorption step), respectively;
+        bbv and bbh are the transfer coeficients of the Volmer and Heyrovsky steps, respectively.
+    """
     # Hydrogen coverage - Volmer-Heyrovsky mechanism    
-    def _theta_volmer_heyrovsky(self, x, k1, k1r, k2, k2r, bbv, bbh, strict=True):
-         """Compute surface coverage for Volmer-Heyrovsky mechanism using Lasia Eq. (68)-(69)."""
+    
+    def theta_volmer_heyrovsky(self, x, k1, k1r, k2, k2r, bbv, bbh, strict=True):
+        #Compute surface coverage for Volmer-Heyrovsky mechanism using Lasia Eq. (68)-(69)
         x = np.asarray(x, dtype=float)
         u = self.f1 * x
         denom = (
@@ -385,7 +386,7 @@ class HydrogenFitting:
     
     # Hydrogen coverage - Volmer-Tafel mechanism
     def _theta_volmer_tafel(self, x, k1, k1r, k3, k3r, bbv, strict=True):
-        """Compute surface coverage for Volmer-Tafel mechanism using Lasia Eq. (97)-(100)."""
+        #Compute surface coverage for Volmer-Tafel mechanism using Lasia Eq. (97)-(100).
         x = np.asarray(x, dtype=float)
         u = self.f1 * x
         if min(k1, k1r, k3, k3r) <= 0:
@@ -433,7 +434,7 @@ class HydrogenFitting:
     
     # Hydrogen coverage - Volmer-Heyrovsky-Tafel mechanism
     def _theta_volmer_heyrovsky_tafel(self, x, k1, k1r, k2, k3, bbv, bbh, strict=True):
-         """Compute surface coverage for Volmer-Tafel mechanism using Lasia Eq. (115)."""
+        #Compute surface coverage for Volmer-Tafel mechanism using Lasia Eq. (115).
         x = np.asarray(x, dtype=float)
         u = self.f1 * x
         if min(k1, k1r, k2, k3) <= 0:
