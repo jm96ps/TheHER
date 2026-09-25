@@ -483,9 +483,10 @@ def _get_plot_bytes(fitter):
     return buf.getvalue()
 
 
-def render_plot(form, files=None):
-    fitter = build_fitter_from_request(form, files)
-    fitter.fit_data(**fit_options_from_request(form))
+def render_plot(form, files=None, fitter=None):
+    if fitter is None:
+        fitter = build_fitter_from_request(form, files)
+        fitter.fit_data(**fit_options_from_request(form))
     return _get_plot_bytes(fitter)
 
 
@@ -515,9 +516,10 @@ def _get_theta_bytes(fitter):
     return buf.getvalue()
 
 
-def render_theta_plot(form, files=None):
-    fitter = build_fitter_from_request(form, files)
-    fitter.fit_data(**fit_options_from_request(form))
+def render_theta_plot(form, files=None, fitter=None):
+    if fitter is None:
+        fitter = build_fitter_from_request(form, files)
+        fitter.fit_data(**fit_options_from_request(form))
     return _get_theta_bytes(fitter)
 
 
@@ -565,9 +567,10 @@ def _get_tafel_bytes(fitter, win=10, skip=0):
     return buf.getvalue()
 
 
-def render_tafel_plot(form, files=None):
-    fitter = build_fitter_from_request(form, files)
-    fitter.fit_data(**fit_options_from_request(form))
+def render_tafel_plot(form, files=None, fitter=None):
+    if fitter is None:
+        fitter = build_fitter_from_request(form, files)
+        fitter.fit_data(**fit_options_from_request(form))
     win = int(form.get('tafel_window', 10))
     skip = int(form.get('tafel_skip', 0))
     return _get_tafel_bytes(fitter, win=win, skip=skip)
@@ -576,9 +579,10 @@ def render_tafel_plot(form, files=None):
 
 
 
-def render_plot_data(form, files=None):
-    fitter = build_fitter_from_request(form, files)
-    fitter.fit_data(**fit_options_from_request(form))
+def render_plot_data(form, files=None, fitter=None):
+    if fitter is None:
+        fitter = build_fitter_from_request(form, files)
+        fitter.fit_data(**fit_options_from_request(form))
     result_model = getattr(fitter, 'result_model', None)
     try:
         fitted = getattr(result_model, 'best_fit', None)
@@ -597,9 +601,10 @@ def render_plot_data(form, files=None):
     })
 
 
-def render_theta_data(form, files=None):
-    fitter = build_fitter_from_request(form, files)
-    fitter.fit_data(**fit_options_from_request(form))
+def render_theta_data(form, files=None, fitter=None):
+    if fitter is None:
+        fitter = build_fitter_from_request(form, files)
+        fitter.fit_data(**fit_options_from_request(form))
     theta_H, theta_empty = fitter.compute_theta()
     x = np.asarray(fitter.potential)
     return sanitize_for_json({
@@ -609,18 +614,19 @@ def render_theta_data(form, files=None):
     })
 
 
-def render_tafel_data(form, files=None):
-    fitter = build_fitter_from_request(form, files)
-    fitter.fit_data(**fit_options_from_request(form))
+def render_tafel_data(form, files=None, fitter=None):
+    if fitter is None:
+        fitter = build_fitter_from_request(form, files)
+        fitter.fit_data(**fit_options_from_request(form))
     win = int(form.get('tafel_window', 10))
-    skip_pts = int(form.get('tafel_skip', 55))
-    tafel_data = fitter.compute_tafel_slope(x=fitter.potential, use_fitted=False, window_size=win, method='rolling')
+    skip_pts = int(form.get('tafel_skip', 0))
+    tafel_data = fitter.compute_tafel_slope(x=fitter.potential, use_fitted=False, window_size=win, method='rolling', skip_initial=skip_pts)
     if isinstance(tafel_data, tuple):
         x_data, slope_data = tafel_data
     else:
         x_data, slope_data = (tafel_data[:, 0], tafel_data[:, 1]) if tafel_data is not None and len(tafel_data) > 0 else ([], [])
 
-    tafel_fit = fitter.compute_tafel_slope(x=fitter.potential, use_fitted=True, window_size=win, method='rolling')
+    tafel_fit = fitter.compute_tafel_slope(x=fitter.potential, use_fitted=True, window_size=win, method='rolling', skip_initial=skip_pts)
     if isinstance(tafel_fit, tuple):
         x_fit, slope_fit = tafel_fit
     else:
@@ -645,13 +651,13 @@ def render_plots_zip(form, files=None):
     fit_opts = fit_options_from_request(form)
     fitter.fit_data(**fit_opts)
 
-    plot_data = render_plot_data(form, files)
-    theta_data = render_theta_data(form, files)
-    tafel_data = render_tafel_data(form, files)
+    plot_data = render_plot_data(form, files, fitter=fitter)
+    theta_data = render_theta_data(form, files, fitter=fitter)
+    tafel_data = render_tafel_data(form, files, fitter=fitter)
 
-    img_plot = render_plot(form, files)
-    img_theta = render_theta_plot(form, files)
-    img_tafel = render_tafel_plot(form, files)
+    img_plot = render_plot(form, files, fitter=fitter)
+    img_theta = render_theta_plot(form, files, fitter=fitter)
+    img_tafel = render_tafel_plot(form, files, fitter=fitter)
 
     fit_report = fitter.result_model.fit_report() if fitter.result_model else "No fit report generated."
 

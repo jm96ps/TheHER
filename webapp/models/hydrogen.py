@@ -54,16 +54,16 @@ class HydrogenFitting:
         self,
         file_path=None,
         area_electrode=None,
-        ohmic_drop=0.0,
+        ohmic_drop=0.0,# Resistence of electrolyte between the reference and work electrode
         ref_correction=None,
-        ref_potential=None,
-        pH=None,
+        ref_potential=None,# Reference electrode potential
+        pH=None,# Electrolyte pH
         temperature=298.15,
         gas_constant=R_CONST,
         potential_min=None,
         potential_max=None,
-        bbv_initial=0.5,
-        bbh_initial=0.5,
+        bbv_initial=0.5, 
+        bbh_initial=0.5, 
         vary_bbv=False,
         vary_bbh=False,
         bbv_min=0.0,
@@ -284,20 +284,23 @@ class HydrogenFitting:
         norm = str(model_type).strip().lower().replace("_", "-").replace(" ", "-")
         if norm in {"volmer-tafel", "tafel-volmer", "vt", "tv", "her-volmer-tafel-fitting"}:
             return "Volmer-Tafel"
+        if norm in {"volmer-heyrovsky-irreversible", "vhi", "vh-irreversible", "her-volmer-heyrovsky-irreversible-fitting"}:
+            return "Volmer-Heyrovsky-Irreversible"
         if norm in {"full", "vht", "volmer-heyrovsky-tafel", "hydrogen-full-fitting", "her-volmer-heyrovsky-tafel-fitting"}:
             return "Volmer-Heyrovsky-Tafel"
         if norm in {"simplified", "vh", "volmer-heyrovsky", "her-simplified-fitting", "her-volmer-heyrovsky-fitting"}:
             return "Volmer-Heyrovsky"
         raise ValueError(
-            f"Unknown model_type '{model_type}'. Supported: 'Volmer-Heyrovsky', 'Volmer-Tafel', 'Volmer-Heyrovsky-Tafel'."
+            f"Unknown model_type '{model_type}'. Supported: 'Volmer-Heyrovsky', 'Volmer-Heyrovsky-Irreversible', 'Volmer-Tafel', 'Volmer-Heyrovsky-Tafel'."
         )
 
     def _make_log_params(self, model_type):
         params = Parameters()
-        self._add_log_rate(params, "k1", self.k1_initial, self.k1_min, self.k1_max, self.vary_k1)
-        self._add_log_rate(params, "k1r", self.k1r_initial, self.k1r_min, self.k1r_max, self.vary_k1r)
-
         norm_model = self._normalize_model_type(model_type)
+
+        self._add_log_rate(params, "k1", self.k1_initial, self.k1_min, self.k1_max, self.vary_k1)
+        if norm_model != "Volmer-Heyrovsky-Irreversible":
+            self._add_log_rate(params, "k1r", self.k1r_initial, self.k1r_min, self.k1r_max, self.vary_k1r)
 
         if norm_model == "Volmer-Heyrovsky":
             self._add_log_rate(params, "k2", self.k2_initial, self.k2_min, self.k2_max, self.vary_k2)
@@ -305,11 +308,13 @@ class HydrogenFitting:
         elif norm_model == "Volmer-Tafel":
             self._add_log_rate(params, "k3", self.k3_initial, self.k3_min, self.k3_max, self.vary_k3)
             self._add_log_rate(params, "k3r", self.k3r_initial, self.k3r_min, self.k3r_max, self.vary_k3r)
+        elif norm_model == "Volmer-Heyrovsky-Irreversible":
+            self._add_log_rate(params, "k2", self.k2_initial, self.k2_min, self.k2_max, self.vary_k2)
         elif norm_model == "Volmer-Heyrovsky-Tafel":
             self._add_log_rate(params, "k2", self.k2_initial, self.k2_min, self.k2_max, self.vary_k2)
             self._add_log_rate(params, "k3", self.k3_initial, self.k3_min, self.k3_max, self.vary_k3)
-            params.add("k2r", expr="(k1*k2)/k1r")
-            params.add("k3r", expr="(k3*k1**2)/(k1r**2)")
+            params.add("k2r", self.k2r_min, self.k2r_max, expr="(k1*k2)/k1r")
+            params.add("k3r", self.k3r_min, self.k3r_max, expr="(k3*k1**2)/(k1r**2)")
         else:
             raise ValueError(f"Unknown model_type: {model_type}")
 
@@ -320,7 +325,7 @@ class HydrogenFitting:
             max=self.bbv_max,
             vary=self.vary_bbv,
         )
-        if norm_model in {"Volmer-Heyrovsky", "Volmer-Heyrovsky-Tafel"}:
+        if norm_model in {"Volmer-Heyrovsky", "Volmer-Heyrovsky-Tafel", "Volmer-Heyrovsky-Irreversible"}:
             params.add(
                 "bbh",
                 value=float(np.clip(self.bbh_initial, self.bbh_min, self.bbh_max)),
@@ -330,7 +335,7 @@ class HydrogenFitting:
             )
         return params
 
-    def _fit_weights(self, relative_error=0.03, current_noise=None):
+    def _fit_weights(self, relative_error=0.03, current_noise=0.0):
         current = np.asarray(self.current, dtype=float)
         if relative_error is None or float(relative_error) < 0:
             raise ValueError("relative_error must be non-negative.")
@@ -345,19 +350,27 @@ class HydrogenFitting:
 
     def _invalid_prediction(self, x, scale):
         return np.full_like(np.asarray(x, dtype=float), 1e6 * max(float(scale), 1e-12), dtype=float)
-    # Hydrogen coverage - Volmer-Heyrovsky mechanism
+"""
+    Description of the kinetic parameters:
+    k1 and k1r are the foward and backward rate constants of the Volmer step (electrochemical adsorption step), respectively;
+    k2 and k2r are the foward and backward rate constants of the Heyrovsky step (electrochemical desorption step), respectively;
+    k3 and k3r are the foward and backward rate constant of the Tafel step (chemical desorption step), respectively;
+    bbv and bbh are the transfer coeficients of the Volmer and Heyrovsky steps, respectively.
+"""
+    # Hydrogen coverage - Volmer-Heyrovsky mechanism    
     def _theta_volmer_heyrovsky(self, x, k1, k1r, k2, k2r, bbv, bbh, strict=True):
+         """Compute surface coverage for Volmer-Heyrovsky mechanism using Lasia Eq. (68)-(69)."""
         x = np.asarray(x, dtype=float)
         u = self.f1 * x
         denom = (
             k1 * self._safe_exp(-bbv * u)
-            + self._safe_exp((1.0 - bbv) * u) * k1r
+            + k1r * self._safe_exp((1.0 - bbv) * u)
             + k2 * self._safe_exp(-bbh * u)
-            + self._safe_exp((1.0 - bbh) * u) * k2r
+            + k2r * self._safe_exp((1.0 - bbh) * u)
         )
         num = (
             k1 * self._safe_exp(-bbv * u)
-            + self._safe_exp((1.0 - bbh) * u) * k2r
+            + k2r * self._safe_exp((1.0 - bbh) * u)
         )
         if np.any(~np.isfinite(denom)) or np.any(np.abs(denom) < 1e-28):
             if strict:
@@ -420,6 +433,7 @@ class HydrogenFitting:
     
     # Hydrogen coverage - Volmer-Heyrovsky-Tafel mechanism
     def _theta_volmer_heyrovsky_tafel(self, x, k1, k1r, k2, k3, bbv, bbh, strict=True):
+         """Compute surface coverage for Volmer-Tafel mechanism using Lasia Eq. (115)."""
         x = np.asarray(x, dtype=float)
         u = self.f1 * x
         if min(k1, k1r, k2, k3) <= 0:
@@ -463,11 +477,28 @@ class HydrogenFitting:
     # HER current density - Volmer-Heyrovsky mechanism
     def _volmer_heyrovsky_current_density(self, x, k1, k1r, k2, k2r, bbv, bbh, invalid_scale):
         x = np.asarray(x, dtype=float)
+        theta = self._theta_volmer_heyrovsky(x, k1, k1r, k2, k2r, bbv, bbh, strict=True)
+        if theta is None:
+            return self._invalid_prediction(x, invalid_scale)
+
         u = self.f1 * x
-        e_u = self._safe_exp(u)
+        theta_empty = 1.0 - theta
+        
+        term1 = k1 * theta_empty * self._safe_exp(-bbv * u)          # v1
+        term2 = k1r * theta * self._safe_exp((1.0 - bbv) * u)        # v-1
+        term3 = k2 * theta * self._safe_exp(-bbh * u)                # v2
+        term4 = k2r * theta_empty * self._safe_exp((1.0 - bbh) * u)  # v-2
+        
+        out = -F_CONST * (term1 - term2 + term3 - term4)
+        return out if np.all(np.isfinite(out)) else self._invalid_prediction(x, invalid_scale)
+
+    # HER current density - Volmer-Heyrovsky Irreversible
+    def _volmer_heyrovsky_irreversible_current_density(self, x, k1, k2, bbv, bbh, invalid_scale):
+        x = np.asarray(x, dtype=float)
+        u = self.f1 * x
         e_shift = self._safe_exp((bbh - bbv) * u)
-        numerator = 2.0 * k1 * k2 * (1.0 - e_u**2) * self._safe_exp(-bbh * u)
-        denominator = k1 * e_shift + k2 + e_u * (k1r * e_shift + k2r)
+        numerator = 2.0 * k1 * k2 * self._safe_exp(-bbv * u)
+        denominator = k1 * e_shift + k2
         if (
             np.any(~np.isfinite(numerator))
             or np.any(~np.isfinite(denominator))
@@ -526,7 +557,7 @@ class HydrogenFitting:
         use_global_search=True,
         n_starts=1,
         relative_error=0.03,
-        current_noise=None,
+        current_noise=0.0,
         max_nfev_global=30000,
         max_nfev_local=20000,
         robust_loss="soft_l1",
@@ -556,6 +587,12 @@ class HydrogenFitting:
 
             def model_func(x, k1, k1r, k2, k2r, bbv, bbh):
                 return self._volmer_heyrovsky_current_density(x, k1, k1r, k2, k2r, bbv, bbh, invalid_scale)
+
+        elif norm_model == "Volmer-Heyrovsky-Irreversible":
+            self.model_type = "HER_Volmer_Heyrovsky_Irreversible_Fitting"
+
+            def model_func(x, k1, k2, bbv, bbh):
+                return self._volmer_heyrovsky_irreversible_current_density(x, k1, k2, bbv, bbh, invalid_scale)
 
         elif norm_model == "Volmer-Tafel":
             self.model_type = "HER_Volmer_Tafel_Fitting"
@@ -747,13 +784,35 @@ class HydrogenFitting:
         if norm == "Volmer-Tafel":
             k3 = value("k3")
             k3r = value("k3r")
-            tafel_rate = k3 * (theta ** 2) - k3r * theta_empty
-            rate_volmer = log10(volmer_rate)
-            rate_tafel = log10(tafel_rate)
-            total=log10(2*tafel_rate)
+            tafel_rate = k3 * (theta ** 2) - k3r * (theta_empty ** 2)
+            rate_volmer = np.log10(np.abs(volmer_rate) + 1e-30)
+            rate_tafel = np.log10(np.abs(tafel_rate) + 1e-30)
+            total = np.log10(np.abs(2 * tafel_rate) + 1e-30)
             return {
                 "x": x_arr,
                 "volmer": rate_volmer,
+                "tafel": rate_tafel,
+                "total": total,
+            }
+        elif norm == "Volmer-Heyrovsky-Tafel":
+            k2 = value("k2")
+            k2r = value("k2r")
+            k3 = value("k3")
+            k3r = value("k3r")
+            bbh = value("bbh", 0.5)
+            heyrovsky_rate = (
+                k2 * theta * self._safe_exp(-bbh * u)
+                - self._safe_exp((1.0 - bbh) * u) * k2r * theta_empty
+            )
+            tafel_rate = k3 * (theta ** 2) - k3r * (theta_empty ** 2)
+            rate_volmer = np.log10(np.abs(volmer_rate) + 1e-30)
+            rate_heyrovsky = np.log10(np.abs(heyrovsky_rate) + 1e-30)
+            rate_tafel = np.log10(np.abs(tafel_rate) + 1e-30)
+            total = np.log10(np.abs(volmer_rate + heyrovsky_rate) + 1e-30)
+            return {
+                "x": x_arr,
+                "volmer": rate_volmer,
+                "heyrovsky": rate_heyrovsky,
                 "tafel": rate_tafel,
                 "total": total,
             }
@@ -765,9 +824,9 @@ class HydrogenFitting:
                 k2 * theta * self._safe_exp(-bbh * u)
                 - self._safe_exp((1.0 - bbh) * u) * k2r * theta_empty
             )
-            rate_volmer = log10(volmer_rate)
-            rate_heyrovsky = log10(heyrovsky_rate)
-            total=log10(volmer_rate+heyrovsky_rate)
+            rate_volmer = np.log10(np.abs(volmer_rate) + 1e-30)
+            rate_heyrovsky = np.log10(np.abs(heyrovsky_rate) + 1e-30)
+            total = np.log10(np.abs(volmer_rate + heyrovsky_rate) + 1e-30)
             return {
                 "x": x_arr,
                 "volmer": rate_volmer,
