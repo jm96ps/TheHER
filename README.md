@@ -20,11 +20,11 @@ By fitting your polarization curves (Current vs. Potential) to well-established 
 This tool is built to assist both expert electrochemists in deep-dive analyses and students learning electrochemistry concepts.
 
 ### Key Features
-- **Four-Panel Analysis Dashboard**: Instantly visualize your Experimental Data, Fit Results, Surface Coverage, and Tafel Slopes in one place.
-- **Multiple Kinetic Models**: Choose between a Simplified 2-step (Volmer-Heyrovsky) model or a Full 3-step (Volmer-Heyrovsky-Tafel) mechanism.
-- **Robust Data Processing**: Built-in support for Ohmic Drop compensation and Reference Potential corrections.
+- **Panel Analysis Dashboard**: Instantly visualize your Experimental Data, Fit Results, Surface Coverage, and Tafel Slopes in one place.
+- **Multiple Kinetic Models**: Choose between Volmer-Heyrovsky, Volmer-Tafel and Volmer-Heyrovsky-Tafel mechanism.
+- **Robust Data Processing**: Built-in support for Ohmic Drop compensation, electrode area and Reference Potential corrections.
 - **Point-and-Click**: No coding required! Upload your `.txt` or `.csv` files and run the fit directly from your browser.
-
+- **And more**: The models and functions can be used directly (follow the jupyter-notebook tutorial).
 ---
 
 ## 🚀 Getting Started (Local Development)
@@ -101,14 +101,52 @@ The application models this using combinations of the following primary steps:
    ```math
    \ce{H2O + e- + M <-->[\overrightarrow{k}_1][\overrightarrow{k}_{-1}] MH + OH-}
    ```
+   ```math
+   v_1= k_1 (1-\theta) e^{-\text{f} \eta  \beta _V}-k_{-1} \theta e^{\text{f} \eta  \left(1-\beta _V\right)} 
+   ```
 2. **Heyrovsky step** (Electrochemical desorption):
    ```math
-   \ce{H2O + MH + e-<-->[\overrightarrow{k}_2][\overrightarrow{k}_{-2}] H2 + OH-}
+   \ce{H2O + MH + e- <-->[\overrightarrow{k}_2][\overrightarrow{k}_{-2}] H2 + OH-}
+   ```
+   ```math
+   v_2= k_2 \theta e^{-\text{f} \eta  \beta _H}-k_{-2} (1-\theta) e^{\text{f} \eta  \left(1-\beta _H\right)}
    ```
 3. **Tafel step** (Chemical desorption, *used in Full Model*):
    ```math
    \ce{2MH<-->[{k}_3][{k}_{-3}] H2 +2M}
    ```
+   ```math
+   v_3= k_3 \theta^2-k_{-3} (1-\theta)^2
+   ```
+**Models**
+
+$\eta$ : overpotential (V)
+
+$f = \frac{F}{RT}$
+
+1. **Volmer-Heyrovsky**
+```math
+\theta = \frac{k_1 e^{\text{f} \eta  \beta _H}+k_{-2} e^{\text{f} \eta  \left(\beta _V+1\right)}}{k_1 e^{\text{f} \eta  \beta _H}+k_{-1} e^{\text{f} \eta  \left(\beta _H+1\right)}+k_2 e^{\text{f} \eta  \beta _V}+k_{-2} e^{\text{f} \eta  \left(\beta _V+1\right)}}
+```
+```math
+i= -F (v_1+v2) = -\frac{2 F k_1 k_2 \left(1-e^{2 \text{f} \eta }\right)}{k_1 e^{\text{f} \eta  \beta _H}+k_{-1} e^{\text{f} \eta  \left(\beta _H+1\right)}+k_2 e^{\text{f} \eta  \beta _V}+k_{-2} e^{\text{f} \eta  \left(\beta _V+1\right)}}
+```
+
+2. **Volmer-Tafel**
+```math
+\theta= \frac{\sqrt{\left(k_1 \left(-e^{-\text{f} \eta  \beta _V}\right)-k_{-1} e^{\text{f} \eta  \left(1-\beta _V\right)}-4 k_{-3}\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}+k_1 \left(-e^{-\text{f} \eta  \beta _V}\right)-k_{-1} e^{\text{f} \eta  \left(1-\beta _V\right)}-4 k_{-3}}{4 (k_3-k_{-3})}
+```
+```math
+i=-F\ 2v_3= -\frac{F e^{-2 \text{f} \eta  \beta _V} \left(2 k_1 k_{-1} e^{\text{f} \eta }-k_1 e^{\text{f} \eta  \beta _V} \sqrt{e^{-2 \text{f} \eta  \beta _V} \left(k_{-1} e^{\text{f} \eta }+4 k_{-3} e^{\text{f} \eta  \beta _V}+k_1\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}-k_{-1} e^{\text{f} \eta  \left(\beta _V+1\right)} \sqrt{e^{-2 \text{f} \eta  \beta _V} \left(k_{-1} e^{\text{f} \eta }+4 k_{-3} e^{\text{f} \eta  \beta _V}+k_1\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}+4 k_1 k_3 e^{\text{f} \eta  \beta _V}+k_{-1}^2 e^{2 \text{f} \eta }+4 k_{-1} k_{-3} e^{\text{f} \eta  \left(\beta _V+1\right)}+k_1^2\right)}{4 (k_3-k_{-3})}
+```
+
+3. **Volmer-Heyrovsky-Tafel**
+```math
+\theta= \frac{-\sqrt{\left(-k_2 e^{-\text{f} \eta  \beta _H}-k_{-2} e^{\text{f} \eta  \left(1-\beta _H\right)}+k_1 \left(-e^{-\text{f} \eta  \beta _V}\right)-k_{-1} e^{\text{f} \eta  \left(1-\beta _V\right)}-4 k_{-3}\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_{-2} e^{\text{f} \eta  \left(1-\beta _H\right)}+k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}+k_2 e^{-\text{f} \eta  \beta _H}+k_{-2} e^{\text{f} \eta  \left(1-\beta _H\right)}+k_1 e^{-\text{f} \eta  \beta _V}+k_{-1} e^{\text{f} \eta  \left(1-\beta _V\right)}+4 k_{-3}}{2 (2 k_{-3}-2 k_3)}
+```
+```math
+i= -F\ (v_1 +v_2)= \frac{F e^{-2 \text{f} \eta  \left(\beta _H+\beta _V\right)} \left(k_1^2 \left(-e^{2 \text{f} \eta  \beta _H}\right)-2 k_1 k_{-1} e^{\text{f} \eta  \left(2 \beta _H+1\right)}+k_1 e^{\text{f} \eta  \left(2 \beta _H+\beta _V\right)} \sqrt{\left(k_2 e^{-\text{f} \eta  \beta _H}+k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+k_{-1} e^{-\text{f} \eta  \left(\beta _V-1\right)}+4 k_{-3}\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}+k_{-1} e^{\text{f} \eta  \left(2 \beta _H+\beta _V+1\right)} \sqrt{\left(k_2 e^{-\text{f} \eta  \beta _H}+k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+k_{-1} e^{-\text{f} \eta  \left(\beta _V-1\right)}+4 k_{-3}\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}-k_2 e^{\text{f} \eta  \left(\beta _H+2 \beta _V\right)} \sqrt{\left(k_2 e^{-\text{f} \eta  \beta _H}+k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+k_{-1} e^{-\text{f} \eta  \left(\beta _V-1\right)}+4 k_{-3}\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}-k_{-2} e^{\text{f} \eta  \left(\beta _H+2 \beta _V+1\right)} \sqrt{\left(k_2 e^{-\text{f} \eta  \beta _H}+k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+k_{-1} e^{-\text{f} \eta  \left(\beta _V-1\right)}+4 k_{-3}\right){}^2-4 (2 k_{-3}-2 k_3) \left(k_{-2} e^{-\text{f} \eta  \left(\beta _H-1\right)}+k_1 e^{-\text{f} \eta  \beta _V}+2 k_{-3}\right)}-4 k_1 k_3 e^{\text{f} \eta  \left(2 \beta _H+\beta _V\right)}-k_{-1}^2 e^{2 \text{f} \eta  \left(\beta _H+1\right)}-4 k_{-1} k_{-3} e^{\text{f} \eta  \left(2 \beta _H+\beta _V+1\right)}+4 k_2 k_{-3} e^{\text{f} \eta  \left(\beta _H+2 \beta _V\right)}+4 k_{-2} k_3 e^{\text{f} \eta  \left(\beta _H+2 \beta _V+1\right)}+k_2^2 e^{2 \text{f} \eta  \beta _V}+2 k_2 k_{-2} e^{\text{f} \eta  \left(2 \beta _V+1\right)}+k_{-2}^2 e^{2 \text{f} \eta  \left(\beta _V+1\right)}\right)}{4 (k_3-k_{-3})}
+```
 
 ### Fitting Defaults and Model Properties
 - **Log-space fitting**: Rate constants are optimized as natural logarithms internally to ensure positivity and scale properly.
