@@ -200,7 +200,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For issues, questions, or suggestions, please [Open an Issue](https://github.com/jm96ps/TheHER/issues) or contact `jamesmario@usp.br`.
 
 <p align="center">
-  <em>Brazil pays poorly PhD candidates. Support this project!</em><br>
   <a href="https://buymeacoffee.com/jm96ps">
     <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me A Coffee">
   </a>
